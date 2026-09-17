@@ -1,0 +1,10 @@
+# Dependências do script de configuração (supabase/seed-users.mjs)
+node_modules/
+
+# Segredos — NUNCA suba isto para o GitHub
+.env
+supabase/.env
+
+# Arquivos de sistema
+.DS_Store
+Thumbs.db
