@@ -380,6 +380,27 @@ var NAV_GROUPS = [
     { path:'historico', label:'Histórico / auditoria', roles:['ADMIN'] }
   ]}
 ];
+/* Ícones do menu lateral e dos cabeçalhos de página (Versão 20 — nova
+   identidade visual). Um SVG simples por tela, no mesmo estilo (traço
+   fino, sem preenchimento, currentColor). */
+var NAV_ICONS = {
+  dashboard: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 11 12 4l8 7"/><path d="M6 10v9a1 1 0 0 0 1 1h4v-6h2v6h4a1 1 0 0 0 1-1v-9"/></svg>',
+  localizacoes: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s7-6.5 7-12a7 7 0 1 0-14 0c0 5.5 7 12 7 12z"/><circle cx="12" cy="9" r="2.3"/></svg>',
+  fornecedores: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2.5" y="9" width="12" height="8" rx="1.2"/><path d="M14.5 12h3.6l3.4 3v2h-1"/><circle cx="7" cy="18.5" r="1.6"/><circle cx="17" cy="18.5" r="1.6"/></svg>',
+  categorias: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 12.5 12.5 20a1.6 1.6 0 0 1-2.3 0L4 13.8a1.6 1.6 0 0 1 0-2.3L11.5 4H18a2 2 0 0 1 2 2v6.5z"/><circle cx="14.7" cy="9.3" r="1.3"/></svg>',
+  produtos: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3.5 7.5 12 3l8.5 4.5V16.5L12 21l-8.5-4.5z"/><path d="M3.5 7.5 12 12l8.5-4.5M12 12v9"/></svg>',
+  compras: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="20" r="1.3"/><circle cx="17" cy="20" r="1.3"/><path d="M2.5 3.5h2.4L7.7 15h9.9l2.4-8.4H5.9"/></svg>',
+  recebimento: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v12m0 0-4-4m4 4 4-4"/><path d="M4 15v3.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V15"/></svg>',
+  estoque: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3.5 8 12 3.5 20.5 8 12 12.5 3.5 8z"/><path d="M3.5 8v8L12 20.5 20.5 16V8"/><path d="M12 12.5V20.5"/></svg>',
+  'consulta-estoque': '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m20 20-4.5-4.5"/></svg>',
+  movimentacoes: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h13M17 7l-3-3m3 3-3 3"/><path d="M20 17H7M7 17l3 3m-3-3 3-3"/></svg>',
+  expedicao: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2.5" y="9" width="12" height="8" rx="1.2"/><path d="M14.5 12h3.6l3.4 3v2h-1"/><circle cx="7" cy="18.5" r="1.6"/><circle cx="17" cy="18.5" r="1.6"/><path d="M2.5 9V6h8v3"/></svg>',
+  vendas: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M8.5 8h7M8.5 12h7"/></svg>',
+  pagamento: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2.5" y="6" width="19" height="13" rx="2"/><path d="M2.5 10.5h19"/></svg>',
+  clientes: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.2"/><path d="M2.8 20c0-3.4 2.8-6 6.2-6s6.2 2.6 6.2 6"/><circle cx="17.5" cy="9" r="2.4"/><path d="M15.8 14.3c2.5.4 4.4 2.5 4.4 5.2"/></svg>',
+  usuarios: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9.5" cy="8" r="3.2"/><path d="M3.3 20c0-3.4 2.8-6.2 6.2-6.2 1 0 2 .25 2.8.68"/><circle cx="18" cy="16" r="2.6"/><path d="M18 12.8v.9M18 17.3v.9M15.6 14.6l.8.5M19.6 16.9l.8.5M15.6 17.4l.8-.5M19.6 15.1l.8-.5"/></svg>',
+  historico: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>'
+};
 function canAccessRoute(path){
   var user = currentUser();
   if(!user) return false;
@@ -411,7 +432,7 @@ function renderShell(){
     visibleItems.forEach(function(it){
       var active = currentPath()===it.path;
       var count = it.count ? it.count() : null;
-      html += '<a class="nav-link'+(active?' active':'')+'" href="#/'+it.path+'"><span>'+esc(it.label)+'</span>'+(count? '<span class="nav-count">'+count+'</span>':'')+'</a>';
+      html += '<a class="nav-link'+(active?' active':'')+'" href="#/'+it.path+'"><span class="nav-left"><span class="nav-icon">'+(NAV_ICONS[it.path]||'')+'</span><span>'+esc(it.label)+'</span></span>'+(count? '<span class="nav-count">'+count+'</span>':'')+'</a>';
     });
     html += '</div>';
   });
@@ -454,16 +475,43 @@ function renderShell(){
    existe ou não), igual ao sistema anterior. */
 function renderLogin(){
   var root = document.getElementById('root');
-  var html = '<div id="login-screen"><div class="login-card">';
-  html += '<img class="login-logo" src="'+LOGO_URL+'" alt="DARVIK">';
-  html += '<p>Entre com seu usuário e senha.</p>';
-  html += '<div class="field"><label>Usuário</label><input type="text" id="f-login-user" autocomplete="username" autocapitalize="off" autocorrect="off"></div>';
-  html += '<div class="field"><label>Senha</label><input type="password" id="f-login-pass" autocomplete="current-password"></div>';
-  html += '<div id="login-error" class="login-error" style="display:none"></div>';
-  html += '<button class="btn btn-primary" id="btn-login" style="width:100%">Entrar</button>';
-  html += '<p class="small muted mt14">Não tem um login? Peça ao administrador do sistema para cadastrar seu usuário.</p>';
+  var ICON_USER = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3.4"/><path d="M4.5 20c0-3.9 3.4-7 7.5-7s7.5 3.1 7.5 7"/></svg>';
+  var ICON_LOCK = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4.5" y="10.5" width="15" height="10" rx="2"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/></svg>';
+  var ICON_EYE = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+  var ICON_EYE_OFF = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3l18 18"/><path d="M10.6 5.7A10.6 10.6 0 0 1 12 5.5c6 0 9.5 6.5 9.5 6.5a16.3 16.3 0 0 1-3.2 3.9M6.6 6.7C4 8.3 2.5 12 2.5 12s3.5 6.5 9.5 6.5c1.3 0 2.5-.3 3.5-.8"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>';
+  var ICON_BOX = NAV_ICONS.produtos;
+  var ICON_CART = NAV_ICONS.compras;
+  var ICON_TREND = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 16.5 9.5 10l4 4L21 6"/><path d="M15.5 6H21v5.5"/></svg>';
+  var ICON_TRUCK = NAV_ICONS.expedicao;
+
+  var html = '<div id="login-screen"><div class="login-wrap">';
+  html += '<div class="login-hero">';
+  html += '<img class="login-hero-logo" src="'+LOGO_URL+'" alt="DARVIK">';
+  html += '<p class="login-hero-tag">Tecnologia que impulsiona sua logística.</p>';
+  html += '<div class="login-hero-features">';
+  html += '<div>'+ICON_BOX+'<span>Gestão de Estoque</span></div>';
+  html += '<div>'+ICON_CART+'<span>Compras</span></div>';
+  html += '<div>'+ICON_TREND+'<span>Vendas</span></div>';
+  html += '<div>'+ICON_TRUCK+'<span>Expedição</span></div>';
   html += '</div></div>';
+  html += '<div class="login-form">';
+  html += '<img class="login-form-logo" src="'+LOGO_URL+'" alt="DARVIK">';
+  html += '<p>Entre com seu usuário e senha.</p>';
+  html += '<div class="field"><label>Usuário</label><div class="input-icon">'+ICON_USER+'<input type="text" id="f-login-user" placeholder="Digite seu usuário" autocomplete="username" autocapitalize="off" autocorrect="off"></div></div>';
+  html += '<div class="field"><label>Senha</label><div class="input-icon">'+ICON_LOCK+'<input type="password" id="f-login-pass" placeholder="Digite sua senha" autocomplete="current-password" style="padding-right:36px"><button type="button" class="pw-toggle" id="btn-toggle-pass" aria-label="Mostrar senha">'+ICON_EYE+'</button></div></div>';
+  html += '<div id="login-error" class="login-error" style="display:none"></div>';
+  html += '<button class="btn btn-primary btn-login-submit" id="btn-login">Entrar <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>';
+  html += '<p class="small muted mt14">Não tem um login? Peça ao administrador do sistema para cadastrar seu usuário.</p>';
+  html += '</div></div></div>';
   root.innerHTML = html;
+
+  var passVisible = false;
+  document.getElementById('btn-toggle-pass').addEventListener('click', function(){
+    passVisible = !passVisible;
+    var input = document.getElementById('f-login-pass');
+    input.type = passVisible ? 'text' : 'password';
+    this.innerHTML = passVisible ? ICON_EYE_OFF : ICON_EYE;
+  });
 
   function showLoginError(msg){
     var el = document.getElementById('login-error');
@@ -543,7 +591,7 @@ function render(){
     var who = document.querySelector('.session-box .who');
     if(who) who.textContent = currentUser().name;
   }
-  document.getElementById('page-title').textContent = PAGE_TITLES[base];
+  document.getElementById('page-title').innerHTML = (NAV_ICONS[base]||'') + '<span>'+esc(PAGE_TITLES[base])+'</span>';
 
   var view = document.getElementById('view');
   var fn = ROUTES[base];
