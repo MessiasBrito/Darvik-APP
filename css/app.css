@@ -2,29 +2,33 @@
 
 :root{
   --bg:#f3f5f8; --surface:#ffffff; --surface-2:#eef1f5; --border:#dbe1ea;
-  --text:#161b22; --text-dim:#5b6472; --accent:#1d3f70; --accent-ink:#ffffff;
+  --text:#161b22; --text-dim:#5b6472; --accent:#15305a; --accent-ink:#ffffff;
   --accent-bg:#e8ecf5;
   --good:#1f9d6a; --good-bg:#e4f7ee; --warn:#b5790f; --warn-bg:#fbf0dd;
   --bad:#d1435a; --bad-bg:#fbe6ea; --info:#5b6472; --info-bg:#eef1f5;
   --shadow: 0 1px 2px rgba(20,30,50,.06), 0 1px 1px rgba(20,30,50,.04);
 }
+/* A identidade visual (Versão 20) usa o painel claro em todas as telas —
+   só o menu lateral é escuro, por design (ver regra #sidebar abaixo) — por
+   isso o tema escuro automático do sistema operacional fica neutralizado
+   aqui (mesmas cores do tema claro), em vez de escurecer o conteúdo. */
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
-    --bg:#10141a; --surface:#161b23; --surface-2:#1c222c; --border:#2a3240;
-    --text:#e8ecf2; --text-dim:#98a3b3; --accent:#7b9ad6; --accent-ink:#0b1220;
-    --accent-bg:#1c2740;
-    --good:#3fcf8e; --good-bg:#123024; --warn:#e0ac3f; --warn-bg:#332508;
-    --bad:#f0637a; --bad-bg:#341019; --info:#98a3b3; --info-bg:#1c222c;
-    --shadow: 0 1px 2px rgba(0,0,0,.4);
+    --bg:#f3f5f8; --surface:#ffffff; --surface-2:#eef1f5; --border:#dbe1ea;
+    --text:#161b22; --text-dim:#5b6472; --accent:#15305a; --accent-ink:#ffffff;
+    --accent-bg:#e8ecf5;
+    --good:#1f9d6a; --good-bg:#e4f7ee; --warn:#b5790f; --warn-bg:#fbf0dd;
+    --bad:#d1435a; --bad-bg:#fbe6ea; --info:#5b6472; --info-bg:#eef1f5;
+    --shadow: 0 1px 2px rgba(20,30,50,.06), 0 1px 1px rgba(20,30,50,.04);
   }
 }
 :root[data-theme="dark"]{
-  --bg:#10141a; --surface:#161b23; --surface-2:#1c222c; --border:#2a3240;
-  --text:#e8ecf2; --text-dim:#98a3b3; --accent:#7b9ad6; --accent-ink:#0b1220;
-  --accent-bg:#1c2740;
-  --good:#3fcf8e; --good-bg:#123024; --warn:#e0ac3f; --warn-bg:#332508;
-  --bad:#f0637a; --bad-bg:#341019; --info:#98a3b3; --info-bg:#1c222c;
-  --shadow: 0 1px 2px rgba(0,0,0,.4);
+  --bg:#f3f5f8; --surface:#ffffff; --surface-2:#eef1f5; --border:#dbe1ea;
+  --text:#161b22; --text-dim:#5b6472; --accent:#15305a; --accent-ink:#ffffff;
+  --accent-bg:#e8ecf5;
+  --good:#1f9d6a; --good-bg:#e4f7ee; --warn:#b5790f; --warn-bg:#fbf0dd;
+  --bad:#d1435a; --bad-bg:#fbe6ea; --info:#5b6472; --info-bg:#eef1f5;
+  --shadow: 0 1px 2px rgba(20,30,50,.06), 0 1px 1px rgba(20,30,50,.04);
 }
 *{box-sizing:border-box;}
 html,body{margin:0;padding:0;}
@@ -45,31 +49,50 @@ button{cursor:pointer;}
 #app{display:flex; min-height:100vh;}
 .hidden{display:none !important;}
 
-/* ---- login ---- */
+/* ---- login (Versão 20 — painel dividido) ---- */
 #login-screen{
   position:fixed; inset:0; background:var(--bg); z-index:500;
-  display:flex; align-items:center; justify-content:center; flex-direction:column; gap:24px;
+  display:flex; align-items:center; justify-content:center; padding:24px;
 }
-.login-card{
-  background:var(--surface); border:1px solid var(--border); border-radius:14px;
-  padding:32px; width:360px; box-shadow:var(--shadow);
+.login-wrap{
+  display:flex; width:100%; max-width:920px; min-height:540px; border-radius:18px;
+  overflow:hidden; box-shadow:0 20px 60px rgba(15,30,55,.18); background:var(--surface);
 }
-.login-card h1{font-size:22px;}
-.login-card p{color:var(--text-dim); margin:0 0 20px; font-size:13px;}
-.user-pick{display:flex; flex-direction:column; gap:8px; max-height:280px; overflow-y:auto; margin-bottom:14px;}
-.user-pick button{
-  display:flex; align-items:center; justify-content:space-between; gap:10px;
-  padding:10px 12px; border:1px solid var(--border); background:var(--surface-2);
-  border-radius:9px; text-align:left; width:100%;
+.login-hero{
+  flex:1; min-width:0; color:#fff; padding:40px 36px; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; text-align:center; gap:18px; position:relative;
+  background:
+    linear-gradient(135deg, rgba(10,22,45,.88), rgba(15,40,80,.72)),
+    repeating-linear-gradient(115deg, rgba(255,255,255,.05) 0 2px, transparent 2px 42px),
+    linear-gradient(160deg, #0b1930 0%, #15305a 100%);
 }
-.user-pick button:hover{border-color:var(--accent);}
-.user-pick .role-tag{font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.04em;}
+.login-hero-logo{max-width:230px; width:100%; height:auto; background:#fff; border-radius:14px; padding:16px 22px; box-shadow:0 10px 28px rgba(0,0,0,.35); position:relative;}
+.login-hero-tag{font-size:14.5px; color:rgba(255,255,255,.8); max-width:270px; position:relative;}
+.login-hero-features{display:flex; gap:24px; margin-top:10px; flex-wrap:wrap; justify-content:center; position:relative;}
+.login-hero-features div{display:flex; flex-direction:column; align-items:center; gap:7px; font-size:10.5px; color:rgba(255,255,255,.8); width:72px; text-transform:uppercase; letter-spacing:.03em;}
+.login-hero-features svg{opacity:.95;}
+.login-form{flex:1; min-width:0; background:var(--surface); padding:44px 44px; display:flex; flex-direction:column; justify-content:center;}
+.login-form-logo{max-width:180px; width:100%; height:auto; margin-bottom:20px;}
+.login-form p{color:var(--text-dim); margin:0 0 22px; font-size:13px;}
+.input-icon{position:relative; display:flex; align-items:center;}
+.input-icon svg{position:absolute; left:11px; color:var(--text-dim); pointer-events:none;}
+.input-icon input{padding-left:34px;}
+.pw-toggle{position:absolute; right:6px; background:none; border:none; color:var(--text-dim); padding:5px; display:flex; border-radius:6px;}
+.pw-toggle:hover{color:var(--text);}
+.btn-login-submit{width:100%; justify-content:center; margin-top:6px; padding:11px;}
+@media (max-width:760px){
+  .login-hero{display:none;}
+  .login-wrap{max-width:420px; min-height:0;}
+  .login-form{padding:36px 28px;}
+}
 .login-error{background:var(--bad-bg); color:var(--bad); border-radius:8px; padding:8px 12px; font-size:12.5px; margin-bottom:12px;}
 
 /* ---- shell ---- */
 #sidebar{
-  width:236px; flex-shrink:0; background:var(--surface); border-right:1px solid var(--border);
+  width:236px; flex-shrink:0; background:#102a4d; border-right:1px solid rgba(255,255,255,.08);
   display:flex; flex-direction:column; height:100vh; position:sticky; top:0;
+  --text:#eef2f8; --text-dim:#9fb0c8; --border:rgba(255,255,255,.12); --surface-2:rgba(255,255,255,.09);
+  --accent:#3b7dfa; --accent-ink:#ffffff;
 }
 .brand{padding:16px 18px 14px; border-bottom:1px solid var(--border); display:flex; flex-direction:column; align-items:flex-start; gap:6px;}
 .brand .name{font-family:'Manrope'; font-weight:800; font-size:16px;}
@@ -84,9 +107,13 @@ nav{flex:1; overflow-y:auto; padding:10px;}
   padding:8px 10px; border-radius:8px; color:var(--text); text-decoration:none; font-size:13.5px; font-weight:500;
 }
 .nav-link:hover{background:var(--surface-2);}
-.nav-link.active{background:var(--accent-bg); color:var(--accent);}
+.nav-link.active{background:var(--accent); color:#fff;}
 .nav-count{font-size:11px; background:var(--surface-2); color:var(--text-dim); border-radius:20px; padding:1px 7px;}
-.nav-link.active .nav-count{background:rgba(255,255,255,.5); color:var(--accent);}
+.nav-link.active .nav-count{background:rgba(255,255,255,.25); color:#fff;}
+.nav-left{display:flex; align-items:center; gap:9px; min-width:0;}
+.nav-left span{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.nav-icon{display:flex; flex-shrink:0; opacity:.85;}
+.nav-icon svg{display:block;}
 .session-box{border-top:1px solid var(--border); padding:12px 16px; font-size:12.5px;}
 .session-box .who{font-weight:600;}
 .session-box .role{color:var(--text-dim); text-transform:uppercase; font-size:10.5px; letter-spacing:.05em;}
@@ -98,7 +125,8 @@ nav{flex:1; overflow-y:auto; padding:10px;}
   padding:14px 26px; border-bottom:1px solid var(--border); background:var(--surface);
   position:sticky; top:0; z-index:10;
 }
-#topbar h2{font-size:18px;}
+#topbar h2{font-size:18px; display:flex; align-items:center; gap:9px;}
+#topbar h2 svg{display:block; color:var(--accent); flex-shrink:0;}
 #save-indicator{font-size:12px; color:var(--text-dim); display:flex; align-items:center; gap:6px;}
 #save-indicator .dot{width:7px;height:7px;border-radius:50%;background:var(--good);}
 #save-indicator.saving .dot{background:var(--warn);}
