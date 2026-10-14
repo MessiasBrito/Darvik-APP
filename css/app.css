@@ -49,39 +49,62 @@ button{cursor:pointer;}
 #app{display:flex; min-height:100vh;}
 .hidden{display:none !important;}
 
-/* ---- login (Versão 20 — painel dividido) ---- */
+/* ---- login (Versão 21 — recorte geométrico inspirado no D) ---- */
 #login-screen{
   position:fixed; inset:0; background:var(--bg); z-index:500;
   display:flex; align-items:center; justify-content:center; padding:24px;
 }
 .login-wrap{
-  display:flex; width:100%; max-width:920px; min-height:540px; border-radius:18px;
-  overflow:hidden; box-shadow:0 20px 60px rgba(15,30,55,.18); background:var(--surface);
+  position:relative; display:flex; width:100%; max-width:1040px; min-height:600px; border-radius:20px;
+  overflow:hidden; box-shadow:0 24px 70px rgba(15,30,55,.22); background:var(--surface);
 }
 .login-hero{
-  flex:1; min-width:0; color:#fff; padding:40px 36px; display:flex; flex-direction:column;
-  align-items:center; justify-content:center; text-align:center; gap:18px; position:relative;
+  position:relative; flex:0 0 42%; min-width:0; color:#fff; padding:40px 34px;
+  display:flex; flex-direction:column; justify-content:space-between;
   background:
-    linear-gradient(135deg, rgba(10,22,45,.88), rgba(15,40,80,.72)),
-    repeating-linear-gradient(115deg, rgba(255,255,255,.05) 0 2px, transparent 2px 42px),
+    radial-gradient(circle at 85% 15%, rgba(59,125,250,.35), transparent 45%),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.035) 0 1px, transparent 1px 38px),
+    repeating-linear-gradient(90deg, rgba(255,255,255,.035) 0 1px, transparent 1px 64px),
     linear-gradient(160deg, #0b1930 0%, #15305a 100%);
 }
-.login-hero-logo{max-width:230px; width:100%; height:auto; background:#fff; border-radius:14px; padding:16px 22px; box-shadow:0 10px 28px rgba(0,0,0,.35); position:relative;}
-.login-hero-tag{font-size:14.5px; color:rgba(255,255,255,.8); max-width:270px; position:relative;}
-.login-hero-features{display:flex; gap:24px; margin-top:10px; flex-wrap:wrap; justify-content:center; position:relative;}
-.login-hero-features div{display:flex; flex-direction:column; align-items:center; gap:7px; font-size:10.5px; color:rgba(255,255,255,.8); width:72px; text-transform:uppercase; letter-spacing:.03em;}
-.login-hero-features svg{opacity:.95;}
-.login-form{flex:1; min-width:0; background:var(--surface); padding:44px 44px; display:flex; flex-direction:column; justify-content:center;}
-.login-form-logo{max-width:180px; width:100%; height:auto; margin-bottom:20px;}
-.login-form p{color:var(--text-dim); margin:0 0 22px; font-size:13px;}
+.login-hero-top{position:relative; z-index:2;}
+.login-hero-logo{max-width:168px; width:100%; height:auto; background:#fff; border-radius:12px; padding:12px 16px; box-shadow:0 10px 26px rgba(0,0,0,.35); display:block;}
+.login-hero-mid{position:relative; z-index:2;}
+.login-hero-tag{font-family:'Manrope', sans-serif; font-weight:700; font-size:27px; line-height:1.28; color:#eef2f8; margin:0; max-width:88%;}
+.login-hero-tag span{color:#5b9bff;}
+.login-hero-bottom{position:relative; z-index:2; display:flex; align-items:center; flex-wrap:wrap; gap:7px 9px; font-size:10.5px; font-weight:600; letter-spacing:.1em; color:rgba(255,255,255,.55); text-transform:uppercase;}
+.login-hero-bottom i{display:inline-block; width:16px; height:2px; background:#5b9bff; border-radius:2px;}
+.login-hero-bottom .sep{color:rgba(255,255,255,.3); font-weight:400;}
+.login-hero-qr{position:absolute; right:26px; bottom:92px; width:54px; height:54px; opacity:.16; z-index:1;}
+.login-cut{position:absolute; top:0; left:calc(42% - 4.4%); width:11.3%; height:100%; z-index:3; pointer-events:none;}
+.login-form{flex:1; min-width:0; background:var(--surface); padding:46px 54px; display:flex; flex-direction:column; justify-content:center; position:relative; z-index:2;}
+.login-form-eyebrow{display:flex; align-items:center; gap:8px; font-size:11px; font-weight:700; letter-spacing:.12em; color:var(--accent); text-transform:uppercase; margin-bottom:10px;}
+.login-form-eyebrow i{display:inline-block; width:14px; height:2px; background:#5b9bff; border-radius:2px;}
+.login-form-title{font-size:27px; line-height:1.25; margin:0 0 6px;}
+.login-form-title span{color:var(--accent);}
+.login-form-logo{display:none;}
+.login-form p.sub{color:var(--text-dim); margin:0 0 24px; font-size:13.5px;}
 .input-icon{position:relative; display:flex; align-items:center;}
 .input-icon svg{position:absolute; left:11px; color:var(--text-dim); pointer-events:none;}
 .input-icon input{padding-left:34px;}
 .pw-toggle{position:absolute; right:6px; background:none; border:none; color:var(--text-dim); padding:5px; display:flex; border-radius:6px;}
 .pw-toggle:hover{color:var(--text);}
-.btn-login-submit{width:100%; justify-content:center; margin-top:6px; padding:11px;}
+.btn-login-submit{width:100%; justify-content:center; margin-top:6px; padding:12px;}
+.login-form-note{display:flex; align-items:flex-start; gap:8px; font-size:12px; color:var(--text-dim); margin-top:18px;}
+.login-form-note svg{flex-shrink:0; margin-top:1px; color:var(--text-dim);}
+.login-form-note b{display:block; color:var(--text); font-weight:600; font-size:12.5px;}
+.login-form-deco{position:absolute; z-index:1; pointer-events:none;}
+.login-form-deco.tr{top:0; right:0; width:120px; height:120px;}
+.login-form-deco.bl{bottom:0; left:0; width:90px; height:90px;}
+@media (max-width:980px) and (min-width:761px){
+  .login-hero{padding:34px 24px;}
+  .login-form{padding:40px 36px;}
+  .login-hero-tag{font-size:22px;}
+  .login-hero-logo{max-width:140px;}
+}
 @media (max-width:760px){
   .login-hero{display:none;}
+  .login-cut{display:none;}
   .login-wrap{max-width:420px; min-height:0;}
   .login-form{padding:36px 28px;}
 }
@@ -160,7 +183,7 @@ nav{flex:1; overflow-y:auto; padding:10px;}
 .btn-ghost{border-color:transparent; background:none;}
 .btn:disabled{opacity:.45; cursor:not-allowed;}
 
-input[type="text"], input[type="number"], input[type="date"], input[type="search"], select, textarea{
+input[type="text"], input[type="password"], input[type="number"], input[type="date"], input[type="search"], select, textarea{
   padding:8px 10px; border:1px solid var(--border); border-radius:8px; background:var(--surface); color:var(--text); width:100%;
 }
 label{display:block; font-size:12.5px; font-weight:600; margin-bottom:4px; color:var(--text-dim);}
@@ -229,7 +252,7 @@ tr:last-child td{border-bottom:none;}
   .kpi-row{grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px;}
   .btn{padding:10px 14px;}
   .btn-sm{padding:7px 11px;}
-  input[type="text"], input[type="number"], input[type="date"], input[type="search"], select, textarea{padding:10px 12px;}
+  input[type="text"], input[type="password"], input[type="number"], input[type="date"], input[type="search"], select, textarea{padding:10px 12px;}
 }
 @media (min-width:881px){
   #sidebar-backdrop{display:none !important;}
