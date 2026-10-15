@@ -49,64 +49,70 @@ button{cursor:pointer;}
 #app{display:flex; min-height:100vh;}
 .hidden{display:none !important;}
 
-/* ---- login (Versão 21 — recorte geométrico inspirado no D) ---- */
+/* ---- login (Versão 22 — foto do armazém + recorte geométrico) ----
+   O painel escuro (.login-hero) usa a foto enviada por você (recortada,
+   assets/login-hero.jpg) como fundo. Ele é desenhado mais largo que o
+   espaço visual que ocupa (48% em vez de ~42%) e recortado com clip-path em
+   zigue-zague — a ponta do recorte "invade" visualmente a área do
+   formulário (que fica por baixo, z-index menor), criando o efeito de
+   encaixe geométrico inspirado no D da logo. O SVG por cima desenha só o
+   traço azul ao longo dessa mesma linha de corte.
+   IMPORTANTE: a logo, o texto "Tecnologia que impulsiona sua logística." e
+   o rodapé "ORGANIZAÇÃO / CONTROLE / RESULTADOS" já fazem parte da própria
+   foto (não são textos HTML) — vieram todos juntos na imagem de referência
+   que você mandou. Se um dia quiser trocar essas palavras, é preciso trocar
+   a foto inteira (eu não gero fotos), não dá pra editar só o texto.
+   ---------------------------------------------------------------------- */
 #login-screen{
   position:fixed; inset:0; background:var(--bg); z-index:500;
   display:flex; align-items:center; justify-content:center; padding:24px;
 }
 .login-wrap{
-  position:relative; display:flex; width:100%; max-width:1040px; min-height:600px; border-radius:20px;
+  position:relative; width:100%; max-width:1040px; min-height:600px; border-radius:20px;
   overflow:hidden; box-shadow:0 24px 70px rgba(15,30,55,.22); background:var(--surface);
 }
 .login-hero{
-  position:relative; flex:0 0 42%; min-width:0; color:#fff; padding:40px 34px;
-  display:flex; flex-direction:column; justify-content:space-between;
-  background:
-    radial-gradient(circle at 85% 15%, rgba(59,125,250,.35), transparent 45%),
-    repeating-linear-gradient(0deg, rgba(255,255,255,.035) 0 1px, transparent 1px 38px),
-    repeating-linear-gradient(90deg, rgba(255,255,255,.035) 0 1px, transparent 1px 64px),
-    linear-gradient(160deg, #0b1930 0%, #15305a 100%);
+  position:absolute; left:0; top:0; width:48%; height:100%; z-index:2;
+  clip-path: polygon(0 0, 83% 0, 96% 25%, 80% 50%, 96% 75%, 83% 100%, 0 100%);
+  background-image:
+    linear-gradient(180deg, rgba(6,14,30,.18) 0%, rgba(6,14,30,0) 20%, rgba(6,14,30,0) 75%, rgba(6,14,30,.35) 100%),
+    url('../assets/login-hero.jpg');
+  background-size:cover; background-position:center;
 }
-.login-hero-top{position:relative; z-index:2;}
-.login-hero-logo{max-width:168px; width:100%; height:auto; background:#fff; border-radius:12px; padding:12px 16px; box-shadow:0 10px 26px rgba(0,0,0,.35); display:block;}
-.login-hero-mid{position:relative; z-index:2;}
-.login-hero-tag{font-family:'Manrope', sans-serif; font-weight:700; font-size:27px; line-height:1.28; color:#eef2f8; margin:0; max-width:88%;}
-.login-hero-tag span{color:#5b9bff;}
-.login-hero-bottom{position:relative; z-index:2; display:flex; align-items:center; flex-wrap:wrap; gap:7px 9px; font-size:10.5px; font-weight:600; letter-spacing:.1em; color:rgba(255,255,255,.55); text-transform:uppercase;}
-.login-hero-bottom i{display:inline-block; width:16px; height:2px; background:#5b9bff; border-radius:2px;}
-.login-hero-bottom .sep{color:rgba(255,255,255,.3); font-weight:400;}
-.login-hero-qr{position:absolute; right:26px; bottom:92px; width:54px; height:54px; opacity:.16; z-index:1;}
-.login-cut{position:absolute; top:0; left:calc(42% - 4.4%); width:11.3%; height:100%; z-index:3; pointer-events:none;}
-.login-form{flex:1; min-width:0; background:var(--surface); padding:46px 54px; display:flex; flex-direction:column; justify-content:center; position:relative; z-index:2;}
+.login-cut-stroke{position:absolute; left:0; top:0; width:48%; height:100%; z-index:3; pointer-events:none;}
+.login-stripes{position:absolute; z-index:4; display:flex; gap:5px;}
+.login-stripes.tr{top:22px; right:26px;}
+.login-stripes.br{bottom:22px; right:26px;}
+.login-stripes i{display:block; width:5px; height:26px; background:linear-gradient(180deg,#8fb4ff,#3b7dfa); transform:skewX(-18deg); border-radius:1px;}
+.login-stripes i:nth-child(2){opacity:.55;}
+.login-form{
+  position:absolute; right:0; top:0; width:58%; height:100%; z-index:1;
+  background:var(--surface); padding:46px 7% 46px 11%; display:flex; flex-direction:column; justify-content:center;
+}
+.login-form-logo{display:none;}
 .login-form-eyebrow{display:flex; align-items:center; gap:8px; font-size:11px; font-weight:700; letter-spacing:.12em; color:var(--accent); text-transform:uppercase; margin-bottom:10px;}
 .login-form-eyebrow i{display:inline-block; width:14px; height:2px; background:#5b9bff; border-radius:2px;}
 .login-form-title{font-size:27px; line-height:1.25; margin:0 0 6px;}
 .login-form-title span{color:var(--accent);}
-.login-form-logo{display:none;}
 .login-form p.sub{color:var(--text-dim); margin:0 0 24px; font-size:13.5px;}
 .input-icon{position:relative; display:flex; align-items:center;}
-.input-icon svg{position:absolute; left:11px; color:var(--text-dim); pointer-events:none;}
-.input-icon input{padding-left:34px;}
+.input-icon svg.i-left{position:absolute; left:11px; color:var(--text-dim); pointer-events:none;}
+.input-icon svg.i-right{position:absolute; right:12px; color:var(--text-dim); pointer-events:none;}
+.input-icon input{padding:10px 36px 10px 34px;}
 .pw-toggle{position:absolute; right:6px; background:none; border:none; color:var(--text-dim); padding:5px; display:flex; border-radius:6px;}
 .pw-toggle:hover{color:var(--text);}
 .btn-login-submit{width:100%; justify-content:center; margin-top:6px; padding:12px;}
 .login-form-note{display:flex; align-items:flex-start; gap:8px; font-size:12px; color:var(--text-dim); margin-top:18px;}
 .login-form-note svg{flex-shrink:0; margin-top:1px; color:var(--text-dim);}
 .login-form-note b{display:block; color:var(--text); font-weight:600; font-size:12.5px;}
-.login-form-deco{position:absolute; z-index:1; pointer-events:none;}
-.login-form-deco.tr{top:0; right:0; width:120px; height:120px;}
-.login-form-deco.bl{bottom:0; left:0; width:90px; height:90px;}
 @media (max-width:980px) and (min-width:761px){
-  .login-hero{padding:34px 24px;}
-  .login-form{padding:40px 36px;}
-  .login-hero-tag{font-size:22px;}
-  .login-hero-logo{max-width:140px;}
+  .login-form{padding:40px 6% 40px 13%;}
 }
 @media (max-width:760px){
-  .login-hero{display:none;}
-  .login-cut{display:none;}
-  .login-wrap{max-width:420px; min-height:0;}
-  .login-form{padding:36px 28px;}
+  .login-hero, .login-cut-stroke{display:none;}
+  .login-stripes.tr, .login-stripes.br{display:none;}
+  .login-wrap{max-width:420px; min-height:0; display:flex;}
+  .login-form{position:static; width:100%; padding:36px 28px;}
 }
 .login-error{background:var(--bad-bg); color:var(--bad); border-radius:8px; padding:8px 12px; font-size:12.5px; margin-bottom:12px;}
 
