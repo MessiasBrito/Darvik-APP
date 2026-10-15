@@ -475,44 +475,40 @@ function renderShell(){
    existe ou não), igual ao sistema anterior. */
 function renderLogin(){
   var root = document.getElementById('root');
-  var ICON_USER = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3.4"/><path d="M4.5 20c0-3.9 3.4-7 7.5-7s7.5 3.1 7.5 7"/></svg>';
-  var ICON_LOCK = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4.5" y="10.5" width="15" height="10" rx="2"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/></svg>';
+  var ICON_USER = '<svg class="i-left" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3.4"/><path d="M4.5 20c0-3.9 3.4-7 7.5-7s7.5 3.1 7.5 7"/></svg>';
+  var ICON_LOCK = '<svg class="i-left" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4.5" y="10.5" width="15" height="10" rx="2"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/></svg>';
+  var ICON_ARROW_SM = '<svg class="i-right" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
   var ICON_EYE = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></svg>';
   var ICON_EYE_OFF = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3l18 18"/><path d="M10.6 5.7A10.6 10.6 0 0 1 12 5.5c6 0 9.5 6.5 9.5 6.5a16.3 16.3 0 0 1-3.2 3.9M6.6 6.7C4 8.3 2.5 12 2.5 12s3.5 6.5 9.5 6.5c1.3 0 2.5-.3 3.5-.8"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>';
   var ICON_INFO = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.8v.1"/></svg>';
 
-  // QR Code decorativo (ilustrado, não é foto) — reforça a identidade de
-  // coletor/armazém no painel escuro, bem discreto (opacity baixa no CSS).
-  var ICON_QR_DECO = '<svg class="login-hero-qr" viewBox="0 0 40 40" fill="#fff"><rect x="0" y="0" width="12" height="12"/><rect x="3" y="3" width="6" height="6" fill="#15305a"/><rect x="28" y="0" width="12" height="12"/><rect x="31" y="3" width="6" height="6" fill="#15305a"/><rect x="0" y="28" width="12" height="12"/><rect x="3" y="31" width="6" height="6" fill="#15305a"/><rect x="16" y="0" width="4" height="4"/><rect x="22" y="4" width="4" height="4"/><rect x="16" y="8" width="4" height="4"/><rect x="16" y="16" width="4" height="4"/><rect x="22" y="16" width="4" height="4"/><rect x="28" y="16" width="4" height="4"/><rect x="34" y="16" width="4" height="4"/><rect x="16" y="22" width="4" height="4"/><rect x="16" y="28" width="4" height="4"/><rect x="22" y="22" width="4" height="4"/><rect x="22" y="34" width="4" height="4"/><rect x="28" y="22" width="4" height="4"/><rect x="34" y="28" width="4" height="4"/></svg>';
-
   // Recorte geométrico entre os dois painéis, inspirado no contorno do
   // símbolo "D" da logo (uma curva angular, entrada e saída únicas — não é
-  // uma onda). O preenchimento acompanha o tom mais escuro do gradiente do
-  // painel esquerdo, e o traço usa o azul de destaque da marca.
-  var LOGIN_CUT = '<svg class="login-cut" viewBox="0 0 118 600" preserveAspectRatio="none">'
-    + '<path d="M0,0 L60,0 L92,150 Q104,180 92,210 L70,300 L92,390 Q104,420 92,450 L60,600 L0,600 Z" fill="#102a4d"/>'
-    + '<path d="M60,0 L92,150 Q104,180 92,210 L70,300 L92,390 Q104,420 92,450 L60,600" fill="none" stroke="#3b7dfa" stroke-width="2.5"/>'
+  // uma onda). O painel esquerdo (.login-hero, no CSS) é desenhado mais
+  // largo que o espaço visual que ocupa e cortado com clip-path nesse mesmo
+  // formato — este SVG aqui só desenha o traço azul por cima, ao longo da
+  // linha do corte.
+  var LOGIN_CUT_STROKE = '<svg class="login-cut-stroke" viewBox="0 0 100 600" preserveAspectRatio="none">'
+    + '<path d="M83,0 L96,150 L80,300 L96,450 L83,600" fill="none" stroke="#3b7dfa" stroke-width="2.2" vector-effect="non-scaling-stroke"/>'
     + '</svg>';
+  var LOGIN_STRIPES = '<div class="login-stripes tr"><i></i><i></i></div><div class="login-stripes br"><i></i><i></i></div>';
 
   var html = '<div id="login-screen"><div class="login-wrap">';
-  html += '<div class="login-hero">';
-  html += '<div class="login-hero-top"><img class="login-hero-logo" src="'+LOGO_URL+'" alt="DARVIK"></div>';
-  html += ICON_QR_DECO;
-  html += '<div class="login-hero-mid"><p class="login-hero-tag">Tecnologia que impulsiona sua <span>logística.</span></p></div>';
-  html += '<div class="login-hero-bottom"><i></i>ORGANIZAÇÃO<span class="sep">/</span>CONTROLE<span class="sep">/</span>RESULTADOS</div>';
-  html += '</div>';
-  html += LOGIN_CUT;
+  // O painel escuro em si não tem texto HTML: a logo, a frase "Tecnologia
+  // que impulsiona sua logística." e o rodapé "ORGANIZAÇÃO / CONTROLE /
+  // RESULTADOS" já fazem parte da própria foto (assets/login-hero.jpg).
+  html += '<div class="login-hero"></div>';
+  html += LOGIN_CUT_STROKE;
+  html += LOGIN_STRIPES;
   html += '<div class="login-form">';
   html += '<div class="login-form-eyebrow"><i></i>Acesso ao sistema</div>';
   html += '<h1 class="login-form-title">Bem-vindo(a) à <span>Darvik</span></h1>';
   html += '<p class="sub">Faça login para continuar</p>';
-  html += '<div class="field"><label>Usuário</label><div class="input-icon">'+ICON_USER+'<input type="text" id="f-login-user" placeholder="Digite seu usuário de acesso" autocomplete="username" autocapitalize="off" autocorrect="off"></div></div>';
+  html += '<div class="field"><label>Usuário</label><div class="input-icon">'+ICON_USER+'<input type="text" id="f-login-user" placeholder="Digite seu usuário de acesso" autocomplete="username" autocapitalize="off" autocorrect="off">'+ICON_ARROW_SM+'</div></div>';
   html += '<div class="field"><label>Senha</label><div class="input-icon">'+ICON_LOCK+'<input type="password" id="f-login-pass" placeholder="Digite sua senha de acesso" autocomplete="current-password" style="padding-right:36px"><button type="button" class="pw-toggle" id="btn-toggle-pass" aria-label="Mostrar senha">'+ICON_EYE+'</button></div></div>';
   html += '<div id="login-error" class="login-error" style="display:none"></div>';
   html += '<button class="btn btn-primary btn-login-submit" id="btn-login">Entrar <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>';
   html += '<div class="login-form-note">'+ICON_INFO+'<div><b>Não tem um login?</b>Solicite seu acesso ao administrador do sistema.</div></div>';
-  html += '<svg class="login-form-deco tr" viewBox="0 0 120 120" fill="none"><path d="M120 0 L120 40 L80 0 Z" fill="var(--accent-bg)"/><path d="M120 10 L110 0" stroke="#3b7dfa" stroke-width="2" opacity=".5"/></svg>';
-  html += '<svg class="login-form-deco bl" viewBox="0 0 90 90" fill="none"><circle cx="0" cy="90" r="46" fill="var(--accent-bg)"/><path d="M0 60 L0 50" stroke="#3b7dfa" stroke-width="2" opacity=".4"/></svg>';
   html += '</div></div></div>';
   root.innerHTML = html;
 
