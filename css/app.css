@@ -76,7 +76,7 @@ button{cursor:pointer;}
   clip-path: polygon(0 0, 83% 0, 96% 25%, 80% 50%, 96% 75%, 83% 100%, 0 100%);
   background-image:
     linear-gradient(180deg, rgba(6,14,30,.18) 0%, rgba(6,14,30,0) 20%, rgba(6,14,30,0) 75%, rgba(6,14,30,.35) 100%),
-    url('../assets/login-hero.jpg');
+    url('../assets/login-hero.png');
   background-size:cover; background-position:18% center;
 }
 .login-cut-stroke{position:absolute; left:0; top:0; width:48%; height:100%; z-index:3; pointer-events:none;}
