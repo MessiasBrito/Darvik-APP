@@ -494,9 +494,8 @@ function renderLogin(){
   var LOGIN_STRIPES = '<div class="login-stripes tr"><i></i><i></i></div><div class="login-stripes br"><i></i><i></i></div>';
 
   var html = '<div id="login-screen"><div class="login-wrap">';
-  // O painel escuro em si não tem texto HTML: a logo, a frase "Tecnologia
-  // que impulsiona sua logística." e o rodapé "ORGANIZAÇÃO / CONTROLE /
-  // RESULTADOS" já fazem parte da própria foto (assets/login-hero.jpg).
+  // O painel escuro não tem texto HTML: logo, slogan e os ícones do rodapé
+  // já vêm todos prontos dentro da própria imagem (assets/login-hero.jpg).
   html += '<div class="login-hero"></div>';
   html += LOGIN_CUT_STROKE;
   html += LOGIN_STRIPES;
