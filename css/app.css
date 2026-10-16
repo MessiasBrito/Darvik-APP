@@ -49,19 +49,22 @@ button{cursor:pointer;}
 #app{display:flex; min-height:100vh;}
 .hidden{display:none !important;}
 
-/* ---- login (Versão 22 — foto do armazém + recorte geométrico) ----
-   O painel escuro (.login-hero) usa a foto enviada por você (recortada,
-   assets/login-hero.jpg) como fundo. Ele é desenhado mais largo que o
+/* ---- login (Versão 24 — imagem única, tudo já embutido nela) ----
+   O painel escuro (.login-hero) usa a imagem enviada por você
+   (assets/login-hero.jpg) como fundo. Ele é desenhado mais largo que o
    espaço visual que ocupa (48% em vez de ~42%) e recortado com clip-path em
    zigue-zague — a ponta do recorte "invade" visualmente a área do
    formulário (que fica por baixo, z-index menor), criando o efeito de
    encaixe geométrico inspirado no D da logo. O SVG por cima desenha só o
    traço azul ao longo dessa mesma linha de corte.
-   IMPORTANTE: a logo, o texto "Tecnologia que impulsiona sua logística." e
-   o rodapé "ORGANIZAÇÃO / CONTROLE / RESULTADOS" já fazem parte da própria
-   foto (não são textos HTML) — vieram todos juntos na imagem de referência
-   que você mandou. Se um dia quiser trocar essas palavras, é preciso trocar
-   a foto inteira (eu não gero fotos), não dá pra editar só o texto.
+   IMPORTANTE: desta vez a logo, o slogan "Tecnologia que impulsiona sua
+   logística." e os ícones do rodapé (Estoque/Compras/Vendas/Expedição) já
+   vêm todos prontos dentro da própria imagem (não são mais HTML separado —
+   por isso não tem .login-hero-tag no HTML desta versão). Se um dia quiser
+   trocar esse texto, precisa trocar a imagem inteira. Uso background-
+   size:contain (em vez de "cover") para a imagem aparecer inteira, sem
+   cortar nada — como ela é mais estreita/alta que o painel, sobra um respiro
+   escuro (background-color, mesmo tom da imagem) dos lados.
    ---------------------------------------------------------------------- */
 #login-screen{
   position:fixed; inset:0; background:var(--bg); z-index:500;
@@ -74,10 +77,13 @@ button{cursor:pointer;}
 .login-hero{
   position:absolute; left:0; top:0; width:48%; height:100%; z-index:2;
   clip-path: polygon(0 0, 83% 0, 96% 25%, 80% 50%, 96% 75%, 83% 100%, 0 100%);
+  background-color:#070f20;
   background-image:
-    linear-gradient(180deg, rgba(6,14,30,.18) 0%, rgba(6,14,30,0) 20%, rgba(6,14,30,0) 75%, rgba(6,14,30,.35) 100%),
+    linear-gradient(180deg, rgba(6,14,30,.12) 0%, rgba(6,14,30,0) 22%, rgba(6,14,30,0) 78%, rgba(6,14,30,.3) 100%),
     url('../assets/login-hero.jpg');
-  background-size:cover; background-position:18% center;
+  background-repeat:no-repeat, no-repeat;
+  background-size:cover, contain;
+  background-position:center, center center;
 }
 .login-cut-stroke{position:absolute; left:0; top:0; width:48%; height:100%; z-index:3; pointer-events:none;}
 .login-stripes{position:absolute; z-index:4; display:flex; gap:5px;}
