@@ -412,7 +412,12 @@ var NAV_ICONS = {
   historico: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>',
   'estoque-gestao': '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3.5 8 12 3.5 20.5 8 12 12.5 3.5 8z"/><path d="M3.5 8v8L12 20.5 20.5 16V8"/><path d="M8 5.8 16.5 10.5"/></svg>',
   'vendas-faturamento': '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 20V9m6 11V4m6 16v-7m6 7V11"/></svg>',
-  'filas-pendentes': '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12h4"/></svg>'
+  'filas-pendentes': '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12h4"/></svg>',
+  'dash-produtos': '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3.5 7.5 12 3l8.5 4.5V16.5L12 21l-8.5-4.5z"/><path d="M3.5 7.5 12 12l8.5-4.5M12 12v9"/></svg>',
+  'dash-produto': '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3.5 7.5 12 3l8.5 4.5V16.5L12 21l-8.5-4.5z"/><path d="M3.5 7.5 12 12l8.5-4.5M12 12v9"/></svg>',
+  'dash-localizacoes': '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s7-6.5 7-12a7 7 0 1 0-14 0c0 5.5 7 12 7 12z"/><circle cx="12" cy="9" r="2.3"/></svg>',
+  'dash-sem-estoque': '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3.5 8 12 3.5 20.5 8 12 12.5 3.5 8z"/><path d="M3.5 8v8L12 20.5 20.5 16V8"/><path d="M12 12.5V20.5"/></svg>',
+  'dash-vendas-ativas': '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M8.5 8h7M8.5 12h7"/></svg>'
 };
 function canAccessRoute(path){
   var user = currentUser();
@@ -573,7 +578,9 @@ var PAGE_TITLES = {
   'consulta-estoque':'Consulta de estoque',
   vendas:'Pedidos de venda',
   pagamento:'Pagamento (loja física)', expedicao:'Expedição (vendas online)', usuarios:'Usuários', historico:'Histórico / auditoria',
-  'estoque-gestao':'Estoque (gestão)', 'vendas-faturamento':'Vendas e faturamento', 'filas-pendentes':'Filas pendentes'
+  'estoque-gestao':'Estoque (gestão)', 'vendas-faturamento':'Vendas e faturamento', 'filas-pendentes':'Filas pendentes',
+  'dash-produtos':'Produtos cadastrados', 'dash-produto':'Ficha do produto', 'dash-localizacoes':'Localizações',
+  'dash-sem-estoque':'Produtos sem estoque', 'dash-vendas-ativas':'Pedidos de venda ativos'
 };
 
 function render(){
@@ -1061,117 +1068,10 @@ function salesQueueModalBody(list, note){
   body += '<div class="table-wrap mt8"><table><thead><tr><th>Código</th><th>Canal</th><th>Cliente</th><th>Prioridade</th><th></th></tr></thead><tbody>';
   list.slice().reverse().forEach(function(o){
     var cus = findCustomer(o.customerId);
-    body += '<tr><td class="code-cell">'+esc(o.code)+'</td><td>'+(o.channel==='LOJA'?'Loja física':'Online')+'</td><td>'+(cus?esc(cus.name):'Consumidor')+'</td><td>'+(o.priority==='ALTA'?'Alta':'Normal')+'</td><td class="right"><a class="btn btn-sm" href="#/vendas/'+o.id+'" onclick="closeModal()">Ver</a></td></tr>';
+    body += '<tr><td class="code-cell">'+esc(o.code)+'</td><td>'+(o.channel==='LOJA'?'Loja física':'Online')+'</td><td>'+(cus?esc(cus.name):'Consumidor')+'</td><td>'+(o.priority==='ALTA'?'<span class="badge badge-bad">Alta</span>':'<span class="badge badge-info">Normal</span>')+'</td><td class="right"><a class="btn btn-sm" href="#/vendas/'+o.id+'" onclick="closeModal()">Ver</a></td></tr>';
   });
   body += '</tbody></table></div>';
   return body;
-}
-
-/* ---- detalhe de cada KPI clicável do Dashboard ---- */
-function openKpiProdutos(){
-  var body;
-  if(STATE.products.length===0) body = emptyState('Nenhum produto cadastrado ainda.');
-  else {
-    body = '<div class="table-wrap"><table><thead><tr><th>SKU</th><th>Produto</th><th>Categoria</th><th>Estoque total</th></tr></thead><tbody>';
-    STATE.products.forEach(function(p){
-      var cat = findCategory(p.categoryId);
-      body += '<tr><td class="code-cell">'+esc(p.sku||'—')+'</td><td>'+esc(p.name)+'</td><td>'+(cat?esc(cat.name):'—')+'</td><td class="qty">'+totalStockForProduct(p.id)+'</td></tr>';
-    });
-    body += '</tbody></table></div>';
-  }
-  kpiModalOpen('Produtos cadastrados ('+STATE.products.length+')', body);
-}
-function openKpiLocalizacoes(){
-  var body;
-  if(STATE.locations.length===0) body = emptyState('Nenhuma localização cadastrada ainda.');
-  else {
-    var rows = STATE.locations.map(function(l){
-      var occ = stockAtLocation(l.id);
-      var pct = l.capacity>0 ? Math.round((occ/l.capacity)*100) : 0;
-      return {l:l, occ:occ, pct:pct};
-    }).sort(function(a,b){ return b.pct - a.pct; });
-    body = '<p class="small muted mb0">Ordenado por ocupação — visão de gestão, sem as ações de cadastro.</p>';
-    body += '<div class="table-wrap mt8"><table><thead><tr><th>Código</th><th>Corredor</th><th>Prateleira</th><th>Nível</th><th>Ocupação</th></tr></thead><tbody>';
-    rows.forEach(function(r){
-      var badgeClass = r.pct>=100?'badge-bad':(r.pct>=70?'badge-warn':'badge-good');
-      body += '<tr><td class="code-cell">'+esc(r.l.code)+'</td><td>'+esc(r.l.corridor)+'</td><td>'+esc(r.l.shelf)+'</td><td>'+esc(r.l.level)+'</td><td class="qty">'+r.occ+' / '+r.l.capacity+' <span class="badge '+badgeClass+'">'+r.pct+'%</span></td></tr>';
-    });
-    body += '</tbody></table></div>';
-  }
-  kpiModalOpen('Localizações ('+STATE.locations.length+')', body);
-}
-function openKpiSemEstoque(){
-  var list = outOfStockProducts();
-  var body;
-  if(list.length===0) body = emptyState('Nenhum produto zerado no momento.');
-  else {
-    body = '<div class="table-wrap"><table><thead><tr><th>SKU</th><th>Produto</th><th>Categoria</th></tr></thead><tbody>';
-    list.forEach(function(p){
-      var cat = findCategory(p.categoryId);
-      body += '<tr><td class="code-cell">'+esc(p.sku||'—')+'</td><td>'+esc(p.name)+'</td><td>'+(cat?esc(cat.name):'—')+'</td></tr>';
-    });
-    body += '</tbody></table></div>';
-  }
-  kpiModalOpen('Produtos sem estoque ('+list.length+')', body);
-}
-function openKpiVendasAtivas(){
-  var list = activeSalesOrders();
-  var body = salesQueueModalBody(list) || emptyState('Nenhum pedido de venda ativo no momento.');
-  kpiModalOpen('Pedidos de venda ativos ('+list.length+')', body);
-}
-function openKpiVendasHoje(){
-  var list = STATE.salesOrders.filter(function(o){ return isToday(o.createdAt); });
-  var body;
-  if(list.length===0) body = emptyState('Nenhuma venda registrada hoje ainda.');
-  else {
-    body = '';
-    list.slice().reverse().forEach(function(o){
-      var cus = findCustomer(o.customerId);
-      body += '<div style="margin-bottom:14px">';
-      body += '<div class="stat-line"><span class="k">'+esc(o.code)+' · '+(cus?esc(cus.name):'Consumidor')+' · '+(o.channel==='LOJA'?'Loja física':'Online')+'</span>'+statusBadge(o.status)+'</div>';
-      body += '<ul class="timeline">';
-      o.items.forEach(function(it){ body += '<li>'+esc(productLabel(it.productId,it.variationId))+' — '+it.qty+' un.</li>'; });
-      body += '</ul></div>';
-    });
-  }
-  kpiModalOpen('Vendas de hoje ('+list.length+')', body);
-}
-function openKpiFaturamentoHoje(){
-  var pays = STATE.payments.filter(function(p){ return isToday(p.createdAt); });
-  var total = pays.reduce(function(sum,p){ return sum+(p.amount||0); }, 0);
-  var body = '<p class="small muted mb0">Considera os pagamentos recebidos hoje na loja física — vendas online não têm pagamento registrado neste sistema.</p>';
-  if(pays.length===0){
-    body += emptyState('Nenhum pagamento recebido hoje ainda.');
-  } else {
-    body += '<div class="table-wrap mt8"><table><thead><tr><th>Pedido</th><th>Método</th><th>Hora</th><th>Valor</th></tr></thead><tbody>';
-    pays.slice().reverse().forEach(function(p){
-      var o = findSO(p.salesOrderId);
-      body += '<tr><td class="code-cell">'+(o?esc(o.code):'—')+'</td><td>'+esc(p.method||'—')+'</td><td>'+fmtDate(p.createdAt)+'</td><td>'+money(p.amount)+'</td></tr>';
-    });
-    body += '</tbody></table></div>';
-
-    var byProduct = {}, order = [];
-    pays.forEach(function(p){
-      var o = findSO(p.salesOrderId);
-      if(!o) return;
-      o.items.forEach(function(it){
-        var prod = findProduct(it.productId);
-        if(!prod) return;
-        var key = it.productId+'|'+(it.variationId||'');
-        if(!byProduct[key]){ byProduct[key] = {label: productLabel(it.productId,it.variationId), qty:0, value:0}; order.push(key); }
-        byProduct[key].qty += it.qty;
-        byProduct[key].value += (prod.price||0)*it.qty;
-      });
-    });
-    if(order.length){
-      body += '<h4 class="mt14">Faturamento por produto</h4>';
-      body += '<p class="small muted mb0">Valor estimado pelo preço de venda cadastrado, para os itens dos pedidos pagos hoje.</p>';
-      body += '<div class="table-wrap mt8"><table><thead><tr><th>Produto</th><th>Qtd. vendida</th><th>Valor</th></tr></thead><tbody>';
-      order.forEach(function(k){ var r=byProduct[k]; body += '<tr><td>'+esc(r.label)+'</td><td class="qty">'+r.qty+'</td><td>'+money(r.value)+'</td></tr>'; });
-      body += '</tbody></table></div>';
-    }
-  }
-  kpiModalOpen('Faturamento de hoje — '+money(total), body);
 }
 
 /* ---- detalhe de cada fila pendente ---- */
@@ -1225,28 +1125,23 @@ function openFilaExpedicao(){
   kpiModalOpen('Aguardando expedição ('+list.length+')', body);
 }
 
-/* ============ DASHBOARD (Versão 25 — enxuto, focado em gestão) ============
-   A pedido da usuária, o Dashboard deixou de acumular tudo: agora mostra só
-   os 6 KPIs (cada um clicável, abrindo o detalhe de gestão correspondente,
-   sem nenhuma ação de edição — só consulta) mais Movimentações recentes e
-   Atividade recente. Os três cards que saíram daqui (Estoque atual, Vendas e
-   faturamento, Filas pendentes) viraram telas próprias no menu "Visão
-   geral" — ver ROUTES['estoque-gestao'/'vendas-faturamento'/'filas-pendentes']
-   logo abaixo. */
+/* ============ DASHBOARD (Versão 26 — KPIs abrem tela cheia) ============
+   A pedido da usuária: cada KPI agora é um link que abre uma tela cheia de
+   gestão (igual às telas do menu), não mais um modal. "Vendas hoje" e
+   "Faturamento hoje" saíram daqui porque já têm tela própria dedicada em
+   "Vendas e faturamento" (ver ROUTES['vendas-faturamento'] abaixo, que ganhou
+   o detalhe que estava nesses dois KPIs). Restam 4 KPIs + Movimentações
+   recentes + Atividade recente. */
 ROUTES.dashboard = function(){
   var lowStockCount = outOfStockProducts().length;
   var activeOrdersCount = activeSalesOrders().length;
-  var salesToday = STATE.salesOrders.filter(function(o){ return isToday(o.createdAt); });
-  var revenueToday = STATE.payments.filter(function(p){ return isToday(p.createdAt); }).reduce(function(sum,p){ return sum+(p.amount||0); }, 0);
 
   var html = '';
   html += '<div class="kpi-row">';
-  html += '<button type="button" class="kpi" data-kpi="produtos"><div class="label">Produtos cadastrados</div><div class="value">'+STATE.products.length+'</div><span class="hint">Ver lista →</span></button>';
-  html += '<button type="button" class="kpi" data-kpi="localizacoes"><div class="label">Localizações</div><div class="value">'+STATE.locations.length+'</div><span class="hint">Ver ocupação →</span></button>';
-  html += '<button type="button" class="kpi warn" data-kpi="sem-estoque"><div class="label">Produtos sem estoque</div><div class="value">'+lowStockCount+'</div><span class="hint">Ver produtos →</span></button>';
-  html += '<button type="button" class="kpi accent" data-kpi="vendas-ativas"><div class="label">Pedidos de venda ativos</div><div class="value">'+activeOrdersCount+'</div><span class="hint">Ver pedidos →</span></button>';
-  html += '<button type="button" class="kpi accent" data-kpi="vendas-hoje"><div class="label">Vendas hoje</div><div class="value">'+salesToday.length+'</div><span class="hint">Ver vendas →</span></button>';
-  html += '<button type="button" class="kpi good" data-kpi="faturamento-hoje"><div class="label">Faturamento hoje</div><div class="value">'+money(revenueToday)+'</div><span class="hint">Ver detalhe →</span></button>';
+  html += '<a class="kpi" href="#/dash-produtos"><div class="label">Produtos cadastrados</div><div class="value">'+STATE.products.length+'</div><span class="hint">Ver lista →</span></a>';
+  html += '<a class="kpi" href="#/dash-localizacoes"><div class="label">Localizações</div><div class="value">'+STATE.locations.length+'</div><span class="hint">Ver ocupação →</span></a>';
+  html += '<a class="kpi warn" href="#/dash-sem-estoque"><div class="label">Produtos sem estoque</div><div class="value">'+lowStockCount+'</div><span class="hint">Ver produtos →</span></a>';
+  html += '<a class="kpi accent" href="#/dash-vendas-ativas"><div class="label">Pedidos de venda ativos</div><div class="value">'+activeOrdersCount+'</div><span class="hint">Ver pedidos →</span></a>';
   html += '</div>';
 
   html += '<div class="detail-grid">';
@@ -1274,14 +1169,66 @@ ROUTES.dashboard = function(){
   html += '</div></div>';
   return html;
 };
-ROUTES.dashboard__after = function(){
-  var handlers = {
-    'produtos': openKpiProdutos, 'localizacoes': openKpiLocalizacoes, 'sem-estoque': openKpiSemEstoque,
-    'vendas-ativas': openKpiVendasAtivas, 'vendas-hoje': openKpiVendasHoje, 'faturamento-hoje': openKpiFaturamentoHoje
-  };
-  document.querySelectorAll('[data-kpi]').forEach(function(b){
-    b.addEventListener('click', function(){ var fn = handlers[b.getAttribute('data-kpi')]; if(fn) fn(); });
+
+/* ---- telas cheias de cada KPI do Dashboard (Versão 26) ----
+   Cada uma tem um link "← Voltar ao Dashboard" e segue o mesmo layout das
+   telas do menu — nada de modal. "Ver" em Produtos cadastrados e Produtos
+   sem estoque abre a ficha completa do produto (mesma tela de Produtos, só
+   que sem a opção de editar — ver ROUTES['dash-produto'] mais abaixo). */
+ROUTES['dash-produtos'] = function(){
+  var html = '<div class="toolbar"><div><a href="#/dashboard" class="small">← Voltar ao Dashboard</a></div></div>';
+  if(STATE.products.length===0){ html += emptyState('Nenhum produto cadastrado ainda.'); return html; }
+  html += '<div class="table-wrap"><table><thead><tr><th>SKU</th><th>Produto</th><th>Categoria</th><th>Estoque total</th><th></th></tr></thead><tbody>';
+  STATE.products.forEach(function(p){
+    var cat = findCategory(p.categoryId);
+    html += '<tr><td class="code-cell">'+esc(p.sku||'—')+'</td><td>'+esc(p.name)+'</td><td>'+(cat?esc(cat.name):'—')+'</td><td class="qty">'+totalStockForProduct(p.id)+'</td><td class="right"><a class="btn btn-sm" href="#/dash-produto/'+p.id+'">Ver</a></td></tr>';
   });
+  html += '</tbody></table></div>';
+  return html;
+};
+ROUTES['dash-sem-estoque'] = function(){
+  var list = outOfStockProducts();
+  var html = '<div class="toolbar"><div><a href="#/dashboard" class="small">← Voltar ao Dashboard</a></div></div>';
+  if(list.length===0){ html += emptyState('Nenhum produto zerado no momento.'); return html; }
+  html += '<div class="table-wrap"><table><thead><tr><th>SKU</th><th>Produto</th><th>Categoria</th><th></th></tr></thead><tbody>';
+  list.forEach(function(p){
+    var cat = findCategory(p.categoryId);
+    html += '<tr><td class="code-cell">'+esc(p.sku||'—')+'</td><td>'+esc(p.name)+'</td><td>'+(cat?esc(cat.name):'—')+'</td><td class="right"><a class="btn btn-sm" href="#/dash-produto/'+p.id+'">Ver</a></td></tr>';
+  });
+  html += '</tbody></table></div>';
+  return html;
+};
+ROUTES['dash-produto'] = function(args){
+  var id = args && args[0];
+  if(!id) return emptyState('Produto não encontrado.');
+  return productDetailHtml(id, {readOnly:true, backHref:'#/dash-produtos', backLabel:'Voltar'});
+};
+ROUTES['dash-produto__after'] = function(args){
+  var id = args && args[0];
+  if(id) productDetailAfter(id, true);
+};
+ROUTES['dash-localizacoes'] = function(){
+  var html = '<div class="toolbar"><div><a href="#/dashboard" class="small">← Voltar ao Dashboard</a></div></div>';
+  if(STATE.locations.length===0){ html += emptyState('Nenhuma localização cadastrada ainda.'); return html; }
+  var rows = STATE.locations.map(function(l){
+    var occ = stockAtLocation(l.id);
+    var pct = l.capacity>0 ? Math.round((occ/l.capacity)*100) : 0;
+    return {l:l, occ:occ, pct:pct};
+  }).sort(function(a,b){ return b.pct - a.pct; });
+  html += '<p class="small muted mb0">Ordenado por ocupação — visão de gestão, sem as ações de cadastro.</p>';
+  html += '<div class="table-wrap mt8"><table><thead><tr><th>Código</th><th>Corredor</th><th>Prateleira</th><th>Nível</th><th>Ocupação</th></tr></thead><tbody>';
+  rows.forEach(function(r){
+    var badgeClass = r.pct>=100?'badge-bad':(r.pct>=70?'badge-warn':'badge-good');
+    html += '<tr><td class="code-cell">'+esc(r.l.code)+'</td><td>'+esc(r.l.corridor)+'</td><td>'+esc(r.l.shelf)+'</td><td>'+esc(r.l.level)+'</td><td class="qty">'+r.occ+' / '+r.l.capacity+' <span class="badge '+badgeClass+'">'+r.pct+'%</span></td></tr>';
+  });
+  html += '</tbody></table></div>';
+  return html;
+};
+ROUTES['dash-vendas-ativas'] = function(){
+  var list = activeSalesOrders();
+  var html = '<div class="toolbar"><div><a href="#/dashboard" class="small">← Voltar ao Dashboard</a></div></div>';
+  html += salesQueueModalBody(list) || emptyState('Nenhum pedido de venda ativo no momento.');
+  return html;
 };
 
 /* ============ ESTOQUE (GESTÃO) — menu "Visão geral" (Versão 25) ============
@@ -1319,7 +1266,8 @@ ROUTES['estoque-gestao'] = function(){
 /* ============ VENDAS E FATURAMENTO — menu "Visão geral" (Versão 25) ======= */
 ROUTES['vendas-faturamento'] = function(){
   var salesToday = STATE.salesOrders.filter(function(o){ return isToday(o.createdAt); });
-  var revenueToday = STATE.payments.filter(function(p){ return isToday(p.createdAt); }).reduce(function(sum,p){ return sum+(p.amount||0); }, 0);
+  var paysToday = STATE.payments.filter(function(p){ return isToday(p.createdAt); });
+  var revenueToday = paysToday.reduce(function(sum,p){ return sum+(p.amount||0); }, 0);
   var activeOrders = activeSalesOrders();
 
   var html = '<div class="kpi-row">';
@@ -1338,6 +1286,54 @@ ROUTES['vendas-faturamento'] = function(){
       html += '<tr><td class="code-cell">'+esc(o.code)+'</td><td>'+(o.channel==='LOJA'?'Loja física':'Online')+'</td><td>'+(cus?esc(cus.name):'Consumidor')+'</td><td>'+statusBadge(o.status)+'</td><td class="right"><a class="btn btn-sm" href="#/vendas/'+o.id+'">Ver</a></td></tr>';
     });
     html += '</tbody></table></div>';
+  }
+  html += '</div>';
+
+  html += '<div class="card mt14"><h3>Vendas de hoje ('+salesToday.length+')</h3>';
+  if(salesToday.length===0) html += emptyState('Nenhuma venda registrada hoje ainda.');
+  else {
+    salesToday.slice().reverse().forEach(function(o){
+      var cus = findCustomer(o.customerId);
+      html += '<div style="margin-bottom:14px">';
+      html += '<div class="stat-line"><span class="k">'+esc(o.code)+' · '+(cus?esc(cus.name):'Consumidor')+' · '+(o.channel==='LOJA'?'Loja física':'Online')+'</span>'+statusBadge(o.status)+'</div>';
+      html += '<ul class="timeline">';
+      o.items.forEach(function(it){ html += '<li>'+esc(productLabel(it.productId,it.variationId))+' — '+it.qty+' un.</li>'; });
+      html += '</ul></div>';
+    });
+  }
+  html += '</div>';
+
+  html += '<div class="card mt14"><h3>Faturamento por produto — hoje</h3>';
+  html += '<p class="small muted mb0">Considera os pagamentos recebidos hoje na loja física — vendas online não têm pagamento registrado neste sistema.</p>';
+  if(paysToday.length===0){
+    html += emptyState('Nenhum pagamento recebido hoje ainda.');
+  } else {
+    html += '<div class="table-wrap mt8"><table><thead><tr><th>Pedido</th><th>Método</th><th>Hora</th><th>Valor</th></tr></thead><tbody>';
+    paysToday.slice().reverse().forEach(function(p){
+      var o = findSO(p.salesOrderId);
+      html += '<tr><td class="code-cell">'+(o?esc(o.code):'—')+'</td><td>'+esc(p.method||'—')+'</td><td>'+fmtDate(p.createdAt)+'</td><td>'+money(p.amount)+'</td></tr>';
+    });
+    html += '</tbody></table></div>';
+
+    var byProduct = {}, order = [];
+    paysToday.forEach(function(p){
+      var o = findSO(p.salesOrderId);
+      if(!o) return;
+      o.items.forEach(function(it){
+        var prod = findProduct(it.productId);
+        if(!prod) return;
+        var key = it.productId+'|'+(it.variationId||'');
+        if(!byProduct[key]){ byProduct[key] = {label: productLabel(it.productId,it.variationId), qty:0, value:0}; order.push(key); }
+        byProduct[key].qty += it.qty;
+        byProduct[key].value += (prod.price||0)*it.qty;
+      });
+    });
+    if(order.length){
+      html += '<h4 class="mt14">Por produto</h4>';
+      html += '<div class="table-wrap mt8"><table><thead><tr><th>Produto</th><th>Qtd. vendida</th><th>Valor</th></tr></thead><tbody>';
+      order.forEach(function(k){ var r=byProduct[k]; html += '<tr><td>'+esc(r.label)+'</td><td class="qty">'+r.qty+'</td><td>'+money(r.value)+'</td></tr>'; });
+      html += '</tbody></table></div>';
+    }
   }
   html += '</div>';
   return html;
@@ -1360,7 +1356,8 @@ ROUTES['filas-pendentes'] = function(){
   var html = '<p class="small muted mb0">Clique em uma fila para ver exatamente o que está pendente nela.</p>';
   html += '<div class="card mt14">';
   rows.forEach(function(r){
-    html += '<button type="button" class="pending-row" data-fila="'+r.key+'"><span class="k">'+esc(r.label)+'</span><span class="v">'+r.count+'</span></button>';
+    var sevClass = r.count===0 ? 'badge-good' : (r.count<5 ? 'badge-warn' : 'badge-bad');
+    html += '<button type="button" class="pending-row" data-fila="'+r.key+'"><span class="k">'+esc(r.label)+'</span><span class="right"><span class="badge badge-lg '+sevClass+'">'+r.count+'</span><span class="chev">›</span></span></button>';
   });
   html += '</div>';
   return html;
@@ -1533,14 +1530,15 @@ ROUTES.produtos__after = function(args){
   if(search) search.addEventListener('input', function(){ renderProdRows(search.value); });
 };
 
-function productDetailHtml(id){
+function productDetailHtml(id, opts){
+  opts = opts || {};
   var p = findProduct(id);
   if(!p) return emptyState('Produto não encontrado.');
   var cat = findCategory(p.categoryId);
   var stockRows = STATE.stock.filter(function(s){return s.productId===id;});
   var movs = STATE.stockMovements.filter(function(m){return m.productId===id;}).slice(0,20);
-  var html = '<div class="toolbar"><div><a href="#/produtos" class="small">← Voltar para produtos</a></div>';
-  html += '<div class="toolbar-left"><button class="btn btn-sm" id="btn-edit-prod">Editar</button></div></div>';
+  var html = '<div class="toolbar"><div><a href="'+(opts.backHref||'#/produtos')+'" class="small">← '+(opts.backLabel||'Voltar para produtos')+'</a></div>';
+  html += '<div class="toolbar-left">'+(opts.readOnly?'':'<button class="btn btn-sm" id="btn-edit-prod">Editar</button>')+'</div></div>';
   html += '<div class="detail-grid">';
   html += '<div class="card"><h3>'+esc(p.name)+'</h3><div class="muted small mt8">SKU '+esc(p.sku)+(cat?' · '+esc(cat.name):'')+(p.brand? ' · '+esc(p.brand):'')+'</div>';
   if(p.variations && p.variations.length){
@@ -1571,8 +1569,9 @@ function productDetailHtml(id){
   return html;
 }
 function movTypeLabel(t){ return { entrada:'Entrada', saida:'Saída', ajuste:'Ajuste', transferencia:'Transferência' }[t] || t; }
-function productDetailAfter(id){
+function productDetailAfter(id, readOnly){
   mountQr('prod-qr-'+id, 'PRD:'+id);
+  if(readOnly) return;
   var btn = document.getElementById('btn-edit-prod');
   if(btn) btn.addEventListener('click', function(){ openProductForm(findProduct(id)); });
 }
