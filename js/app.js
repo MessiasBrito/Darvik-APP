@@ -178,26 +178,46 @@ function saveState(){
 function flushSave(){
   SAVE_TIMER = null;
   if(!SAVE_PENDING) return;
+  if(SYNCING){ SAVE_PENDING = true; SAVE_TIMER = setTimeout(flushSave, 400); return; }
   SAVE_PENDING = false;
+  SYNCING = true;
   setSaveIndicator('saving');
   syncAllToSupabase().then(function(){
+    SYNCING = false;
     setSaveIndicator('ok');
   }).catch(function(err){
+    SYNCING = false;
     console.error('Falha ao sincronizar com o Supabase:', err);
     setSaveIndicator('error');
-    toast('Não foi possível salvar agora. Verifique sua internet.', 'bad');
+    toast('Não foi possível salvar: ' + ((err && err.message) || 'erro desconhecido'), 'bad');
   });
 }
+
+/* Sincronizacao "diferencial": o painel guarda uma foto (SNAP) do que sabe
+   que existe no banco. Ao salvar, so envia linhas novas/alteradas por ele e
+   so apaga linhas que ELE conhecia e removeu. Nunca regrava a tabela inteira
+   com uma copia antiga nem apaga linhas que outro sistema (o coletor) criou. */
+var SNAP = {};          /* tabela -> { id: json da linha como esta no banco } */
+var SYNCING = false;
+function rowKey(r){ return JSON.stringify(r); }
 
 function syncTable(table, rows){
   rows = rows || [];
   var db = supabaseClient;
-  var ids = rows.map(function(r){ return r.id; });
-  var p = rows.length ? db.from(table).upsert(rows).then(function(res){ if(res.error) throw res.error; }) : Promise.resolve();
+  var snap = SNAP[table] = SNAP[table] || {};
+  var cur = {}, changed = [];
+  rows.forEach(function(r){
+    cur[r.id] = 1;
+    var k = rowKey(r);
+    if(snap[r.id] !== k) changed.push({ row:r, key:k });
+  });
+  var removed = Object.keys(snap).filter(function(id){ return !cur[id]; });
+  var p = changed.length
+    ? db.from(table).upsert(changed.map(function(c){ return c.row; })).then(function(res){ if(res.error) throw res.error; changed.forEach(function(c){ snap[c.row.id] = c.key; }); })
+    : Promise.resolve();
   return p.then(function(){
-    var delQuery = db.from(table).delete();
-    delQuery = ids.length ? delQuery.not('id','in','('+ids.map(function(i){ return '"'+String(i).replace(/"/g,'')+'"'; }).join(',')+')') : delQuery.gte('id','');
-    return delQuery.then(function(res){ if(res.error) throw res.error; });
+    if(!removed.length) return;
+    return db.from(table).delete().in('id', removed).then(function(res){ if(res.error) throw res.error; removed.forEach(function(id){ delete snap[id]; }); });
   });
 }
 
@@ -212,25 +232,129 @@ function mapPaymentOut(p){ return { id:p.id, sales_order_id:p.salesOrderId||null
 function mapShipmentOut(s){ return { id:s.id, sales_order_id:s.salesOrderId||null, tracking_code:s.trackingCode||null, status:s.status||null, events:s.events||[], created_at: s.createdAt? new Date(s.createdAt).toISOString(): undefined }; }
 function mapAuditOut(a){ return { id:a.id, "timestamp": a.timestamp? new Date(a.timestamp).toISOString(): undefined, user_id:a.userId||null, user_name:a.userName||null, action:a.action||null, entity_type:a.entityType||null, entity_id:a.entityId||null, details:a.details||null }; }
 
-function syncAllToSupabase(){
-  var jobs = [
-    syncTable('categories', STATE.categories),
-    syncTable('suppliers', STATE.suppliers),
-    syncTable('customers', STATE.customers),
-    syncTable('products', STATE.products.map(mapProductOut)),
-    syncTable('locations', STATE.locations.map(mapLocationOut)),
-    syncTable('stock', STATE.stock.map(mapStockOut)),
-    syncTable('stock_movements', STATE.stockMovements.map(mapMovementOut)),
-    syncTable('purchase_orders', STATE.purchaseOrders.map(mapPoOut)),
-    syncTable('storage_tasks', STATE.storageTasks.map(mapStorageTaskOut)),
-    syncTable('sales_orders', STATE.salesOrders.map(mapSoOut)),
-    syncTable('payments', STATE.payments.map(mapPaymentOut)),
-    syncTable('shipments', STATE.shipments.map(mapShipmentOut)),
-    syncTable('audit_log', STATE.auditLog.map(mapAuditOut)),
-    supabaseClient.from('org_meta').update({ org_name: STATE.meta.orgName, seq: STATE.meta.seq }).eq('id','main').then(function(res){ if(res.error) throw res.error; })
-  ];
-  return Promise.all(jobs);
+/* tabela -> como ler/gravar no STATE. "limited" = o carregamento traz so as
+   linhas mais recentes, entao linhas ausentes na resposta NAO foram apagadas. */
+var SYNC_TABLES = [
+  { table:'categories',      key:'categories',     inn:null,            out:null },
+  { table:'suppliers',       key:'suppliers',      inn:null,            out:null },
+  { table:'customers',       key:'customers',      inn:null,            out:null },
+  { table:'products',        key:'products',       inn:'mapProductIn',  out:'mapProductOut' },
+  { table:'locations',       key:'locations',      inn:'mapLocationIn', out:'mapLocationOut' },
+  { table:'stock',           key:'stock',          inn:'mapStockIn',    out:'mapStockOut' },
+  { table:'stock_movements', key:'stockMovements', inn:'mapMovementIn', out:'mapMovementOut', order:['timestamp'], limit:2000, limited:true },
+  { table:'purchase_orders', key:'purchaseOrders', inn:'mapPoIn',       out:'mapPoOut' },
+  { table:'storage_tasks',   key:'storageTasks',   inn:'mapStorageTaskIn', out:'mapStorageTaskOut' },
+  { table:'sales_orders',    key:'salesOrders',    inn:'mapSoIn',       out:'mapSoOut' },
+  { table:'payments',        key:'payments',       inn:'mapPaymentIn',  out:'mapPaymentOut' },
+  { table:'shipments',       key:'shipments',      inn:'mapShipmentIn', out:'mapShipmentOut' },
+  { table:'audit_log',       key:'auditLog',       inn:'mapAuditIn',    out:'mapAuditOut', order:['timestamp'], limit:1000, limited:true }
+];
+function mapperOf(name){
+  if(!name) return function(x){ return x; };
+  return ({ mapProductIn:mapProductIn, mapProductOut:mapProductOut, mapLocationIn:mapLocationIn, mapLocationOut:mapLocationOut,
+    mapStockIn:mapStockIn, mapStockOut:mapStockOut, mapMovementIn:mapMovementIn, mapMovementOut:mapMovementOut,
+    mapPoIn:mapPoIn, mapPoOut:mapPoOut, mapStorageTaskIn:mapStorageTaskIn, mapStorageTaskOut:mapStorageTaskOut,
+    mapSoIn:mapSoIn, mapSoOut:mapSoOut, mapPaymentIn:mapPaymentIn, mapPaymentOut:mapPaymentOut,
+    mapShipmentIn:mapShipmentIn, mapShipmentOut:mapShipmentOut, mapAuditIn:mapAuditIn, mapAuditOut:mapAuditOut })[name];
 }
+
+function syncAllToSupabase(){
+  var failed = [];
+  var jobs = SYNC_TABLES.map(function(t){
+    var out = mapperOf(t.out);
+    return syncTable(t.table, (STATE[t.key]||[]).map(out)).catch(function(err){ failed.push(t.table+': '+((err&&err.message)||err)); });
+  });
+  jobs.push(
+    supabaseClient.from('org_meta').update({ org_name: STATE.meta.orgName, seq: STATE.meta.seq }).eq('id','main')
+      .then(function(res){ if(res.error) throw res.error; })
+      .catch(function(err){ failed.push('org_meta: '+((err&&err.message)||err)); })
+  );
+  return Promise.all(jobs).then(function(){
+    if(failed.length) throw new Error(failed.join(' | '));
+  });
+}
+
+/* Foto inicial: tudo que acabou de ser carregado do banco. */
+function resetSnapshots(){
+  SNAP = {};
+  SYNC_TABLES.forEach(function(t){
+    var out = mapperOf(t.out), snap = SNAP[t.table] = {};
+    (STATE[t.key]||[]).forEach(function(r){ snap[r.id] = rowKey(out(r)); });
+  });
+}
+
+/* Traz do banco o que mudou la (ex.: o coletor guardou/separou algo) e junta
+   com o que o painel ja tem na tela, linha a linha: se o usuario mexeu numa
+   linha e ainda nao salvou, a versao dele vence; se nao, vale a do banco. */
+var REFRESHING = false;
+async function refreshRemote(){
+  if(REFRESHING || SYNCING || !SESSION || !currentUser()) return false;
+  REFRESHING = true;
+  try{
+    var db = supabaseClient;
+    var res = await Promise.all(SYNC_TABLES.map(function(t){
+      var q = db.from(t.table).select('*');
+      if(t.order) q = q.order(t.order[0], { ascending:false });
+      if(t.limit) q = q.limit(t.limit);
+      return q;
+    }).concat([ db.from('org_meta').select('*').eq('id','main').maybeSingle() ]));
+    for(var i=0;i<res.length;i++){ if(res[i].error) throw res[i].error; }
+    if(SYNCING || SAVE_TIMER) return false;   /* usuario salvou enquanto buscava: deixa pro proximo ciclo */
+    var changedAny = false;
+    SYNC_TABLES.forEach(function(t, idx){
+      var inn = mapperOf(t.inn), out = mapperOf(t.out);
+      var snap = SNAP[t.table] = SNAP[t.table] || {};
+      var server = (res[idx].data||[]).map(inn);
+      var serverIds = {}; server.forEach(function(r){ serverIds[r.id] = r; });
+      var local = STATE[t.key]||[], localById = {};
+      local.forEach(function(r){ localById[r.id] = r; });
+      function dirty(r){ return snap[r.id] !== undefined && rowKey(out(r)) !== snap[r.id]; }
+      var merged = [];
+      if(t.limited){
+        local.forEach(function(r){ if(snap[r.id]===undefined) merged.push(r); });   /* novas locais (ainda nao salvas) */
+      }
+      server.forEach(function(r){
+        var l = localById[r.id];
+        merged.push(l && dirty(l) ? l : r);
+      });
+      if(t.limited){
+        local.forEach(function(r){ if(snap[r.id]!==undefined && !serverIds[r.id]) merged.push(r); });  /* mais antigas, fora da janela */
+      } else {
+        local.forEach(function(r){
+          if(serverIds[r.id]) return;
+          if(snap[r.id]===undefined || dirty(r)) merged.push(r);   /* criada aqui e ainda nao salva */
+          else delete snap[r.id];                                  /* apagada em outro lugar */
+        });
+      }
+      /* snapshot do que o banco tem de verdade, para linhas que o usuario alterou */
+      server.forEach(function(r){ snap[r.id] = rowKey(out(r)); });
+      if(JSON.stringify(merged.map(out)) !== JSON.stringify(local.map(out))){ STATE[t.key] = merged; changedAny = true; }
+    });
+    var meta = res[res.length-1].data;
+    if(meta && meta.seq){
+      var seq = STATE.meta.seq = STATE.meta.seq || {};
+      Object.keys(meta.seq).forEach(function(k){ if(Number(meta.seq[k]) > Number(seq[k]||0)){ seq[k] = meta.seq[k]; changedAny = true; } });
+    }
+    return changedAny;
+  } finally { REFRESHING = false; }
+}
+
+/* Atualiza a tela sem atrapalhar quem esta digitando ou com janela aberta. */
+async function autoRefresh(){
+  if(document.hidden) return;
+  try{
+    var changed = await refreshRemote();
+    if(changed){
+      var ae = document.activeElement, typing = ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName);
+      if(document.getElementById('active-modal') || typing){ NEEDS_RENDER = true; }
+      else { NEEDS_RENDER = false; render(); }
+    } else if(NEEDS_RENDER){
+      var ae2 = document.activeElement, typing2 = ae2 && /^(INPUT|TEXTAREA|SELECT)$/.test(ae2.tagName);
+      if(!document.getElementById('active-modal') && !typing2){ NEEDS_RENDER = false; render(); }
+    }
+  }catch(e){ console.warn('Atualizacao automatica falhou:', e); }
+}
+var NEEDS_RENDER = false;
 
 /* ============ CARREGAR DADOS DO SUPABASE ============ */
 function mapProductIn(p){ return { id:p.id, sku:p.sku, name:p.name, categoryId:p.category_id, brand:p.brand, price: p.price!=null? Number(p.price): p.price, variations:p.variations||[], createdAt: p.created_at? new Date(p.created_at).getTime(): null }; }
@@ -285,6 +409,7 @@ async function loadAllData(){
   STATE.auditLog = (auditLog.data||[]).map(mapAuditIn);
   STATE.meta.orgName = (orgMeta.data && orgMeta.data.org_name) || 'DARVIK';
   STATE.meta.seq = (orgMeta.data && orgMeta.data.seq) || {};
+  resetSnapshots();
 }
 
 /* Chama a Edge Function "manage-user" (unico caminho para criar/editar login
@@ -2625,5 +2750,7 @@ async function boot(){
   render();
 }
 document.addEventListener('DOMContentLoaded', boot);
+setInterval(autoRefresh, 15000);
+document.addEventListener('visibilitychange', function(){ if(!document.hidden) autoRefresh(); });
 
 })();
