@@ -500,30 +500,23 @@ function renderLogin(){
   var ICON_EYE_OFF = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3l18 18"/><path d="M10.6 5.7A10.6 10.6 0 0 1 12 5.5c6 0 9.5 6.5 9.5 6.5a16.3 16.3 0 0 1-3.2 3.9M6.6 6.7C4 8.3 2.5 12 2.5 12s3.5 6.5 9.5 6.5c1.3 0 2.5-.3 3.5-.8"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>';
   var ICON_INFO = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.8v.1"/></svg>';
 
-  // Recorte geométrico entre os dois painéis, inspirado no contorno do
-  // símbolo "D" da logo (uma curva angular, entrada e saída únicas — não é
-  // uma onda). O painel esquerdo (.login-hero, no CSS) é desenhado mais
-  // largo que o espaço visual que ocupa e cortado com clip-path nesse mesmo
-  // formato — este SVG aqui só desenha o traço azul por cima, ao longo da
-  // linha do corte.
-  var LOGIN_CUT_STROKE = '<svg class="login-cut-stroke" viewBox="0 0 100 600" preserveAspectRatio="none">'
-    + '<path d="M83,0 L96,150 L80,300 L96,450 L83,600" fill="none" stroke="#3b7dfa" stroke-width="2.2" vector-effect="non-scaling-stroke"/>'
-    + '</svg>';
-  var LOGIN_STRIPES = '<div class="login-stripes tr"><i></i><i></i></div><div class="login-stripes br"><i></i><i></i></div>';
-
-  var html = '<div id="login-screen"><div class="login-wrap">';
-  // O painel escuro não tem texto HTML: logo, slogan e os ícones do rodapé
-  // já vêm todos prontos dentro da própria imagem (assets/login-hero.jpg).
-  html += '<div class="login-hero"></div>';
-  html += LOGIN_CUT_STROKE;
-  html += LOGIN_STRIPES;
+  // Tela cheia sobre a foto do estoque com película azul, sem caixa. Igual nos
+  // dois sistemas; só a etiqueta .login-system muda ("Controle de estoque"
+  // aqui; "Coletor" no sistema do celular).
+  var html = '<div id="login-screen">'
+        + '<img class="login-logo-top" src="assets/logo.png" alt="Darvik Logistics &amp; Technology">'
+        + '<div class="login-system">Controle de estoque</div>'
+        + '<div class="login-layout"><div class="login-brand">'
+        + '<div class="login-hello">Seja</div><h1 class="login-welcome">Bem-vindo!</h1>'
+        + '<div class="login-slogan">Conectando o Micro ao Macro</div>'
+        + '<p>Compras, recebimento, armazenagem, separação e expedição em um só lugar, conectado ao coletor no celular.</p>'
+        + '</div>';
   html += '<div class="login-form">';
-  html += '<div class="login-form-eyebrow"><i></i>Acesso ao sistema</div>';
-  html += '<h1 class="login-form-title">Bem-vindo(a) à <span>Darvik</span></h1>';
   html += '<p class="sub">Faça login para continuar</p>';
   html += '<div class="field"><label>Usuário</label><div class="input-icon">'+ICON_USER+'<input type="text" id="f-login-user" placeholder="Digite seu usuário de acesso" autocomplete="username" autocapitalize="off" autocorrect="off">'+ICON_ARROW_SM+'</div></div>';
   html += '<div class="field"><label>Senha</label><div class="input-icon">'+ICON_LOCK+'<input type="password" id="f-login-pass" placeholder="Digite sua senha de acesso" autocomplete="current-password" style="padding-right:36px"><button type="button" class="pw-toggle" id="btn-toggle-pass" aria-label="Mostrar senha">'+ICON_EYE+'</button></div></div>';
-  html += '<div id="login-error" class="login-error" style="display:none"></div>';
+  html += '<button type="button" class="login-forgot" id="btn-forgot">Esqueceu a senha?</button>';
+  html += '<div id="login-error" class="login-error" style="display:none;margin-top:12px"></div>';
   html += '<button class="btn btn-primary btn-login-submit" id="btn-login">Entrar <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>';
   html += '<div class="login-form-note">'+ICON_INFO+'<div><b>Não tem um login?</b>Solicite seu acesso ao administrador do sistema.</div></div>';
   html += '</div></div></div>';
@@ -565,6 +558,9 @@ function renderLogin(){
       btn.disabled=false;
     }
   }
+  // "Esqueceu a senha?": a recuperação automática ainda será construída;
+  // por enquanto orienta a falar com o administrador.
+  document.getElementById('btn-forgot').addEventListener('click', function(){ showLoginError('Para redefinir sua senha, fale com o administrador do sistema.'); });
   document.getElementById('btn-login').addEventListener('click', doLogin);
   document.getElementById('f-login-user').addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); document.getElementById('f-login-pass').focus(); } });
   document.getElementById('f-login-pass').addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); doLogin(); } });
