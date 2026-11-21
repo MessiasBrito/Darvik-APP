@@ -115,6 +115,31 @@ button{cursor:pointer;}
   .login-brand > p{display:none;}
   .login-form{justify-self:stretch; max-width:none;}
 }
+/* ---- login: versão CLARA (ativada com LOGIN_CLARO = true em app.js) ---- */
+#login-screen.login-light{color:#0b2a6b; background:#fff;}
+#login-screen.login-light::before{filter:grayscale(1) brightness(1.1) contrast(.95);}
+#login-screen.login-light::after{background:linear-gradient(115deg, rgba(255,255,255,.94) 0%, rgba(243,248,255,.90) 50%, rgba(205,224,252,.82) 100%);}
+.login-light .login-logo-top{filter:none; mix-blend-mode:multiply;}
+.login-light .login-hello,.login-light .login-welcome{color:#0b2a6b;}
+.login-light .login-slogan{color:#1456c4;}
+.login-light .login-brand > p{color:#3d4a63;}
+.login-light .login-system{color:#1456c4; background:#eaf1fd; border:1px solid #c3d6f6;}
+.login-light .login-form p.sub{color:#0b2a6b;}
+.login-light .login-form .field label{color:#0b2a6b;}
+.login-light.login-light .input-icon svg.i-left{color:#1456c4;}
+.login-light .input-icon svg.i-right,.login-light .pw-toggle{color:#5b6f94;}
+.login-light .pw-toggle:hover{color:#0b2a6b;}
+#login-screen.login-light .input-icon input{color:#0b2a6b; background:rgba(255,255,255,.92); border:1.5px solid #b4c9ee; box-shadow:0 6px 18px rgba(11,42,107,.08);}
+#login-screen.login-light .input-icon input::placeholder{color:#7b8aa6;}
+#login-screen.login-light .input-icon input:focus{border-color:#1456c4; background:#fff; box-shadow:0 0 0 3px rgba(20,86,196,.18);}
+#login-screen.login-light input:-webkit-autofill{-webkit-text-fill-color:#0b2a6b;}
+#login-screen.login-light .btn-login-submit{background:#0b2a6b; color:#fff; border-color:#0b2a6b; box-shadow:0 10px 24px rgba(11,42,107,.28);}
+#login-screen.login-light .btn-login-submit:hover{background:#1456c4; border-color:#1456c4;}
+.login-light .login-forgot{color:#1456c4;}
+.login-light .login-forgot:hover{color:#0b2a6b;}
+.login-light .login-form-note{color:#51607a;}
+.login-light .login-form-note svg{color:#51607a;}
+.login-light .login-form-note b{color:#0b2a6b;}
 .login-error{background:var(--bad-bg); color:var(--bad); border-radius:8px; padding:8px 12px; font-size:12.5px; margin-bottom:12px;}
 
 /* ---- shell ---- */
