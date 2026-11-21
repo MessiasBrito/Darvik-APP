@@ -491,6 +491,8 @@ function renderShell(){
    tradução, nunca senha) e então autenticado via signInWithPassword. A
    mensagem de erro continua genérica de propósito (não revela se o login
    existe ou não), igual ao sistema anterior. */
+// true = tela de login clara (fundo branco, letras azuis); false = escura.
+var LOGIN_CLARO = true;
 function renderLogin(){
   var root = document.getElementById('root');
   var ICON_USER = '<svg class="i-left" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3.4"/><path d="M4.5 20c0-3.9 3.4-7 7.5-7s7.5 3.1 7.5 7"/></svg>';
@@ -503,8 +505,8 @@ function renderLogin(){
   // Tela cheia sobre a foto do estoque com película azul, sem caixa. Igual nos
   // dois sistemas; só a etiqueta .login-system muda ("Controle de estoque"
   // aqui; "Coletor" no sistema do celular).
-  var html = '<div id="login-screen">'
-        + '<img class="login-logo-top" src="assets/logo.png" alt="Darvik Logistics &amp; Technology">'
+  var html = '<div id="login-screen"'+(LOGIN_CLARO?' class="login-light"':'')+'>'
+        + '<img class="login-logo-top" src="assets/'+(LOGIN_CLARO?'logo.jpg':'logo.png')+'" alt="Darvik Logistics &amp; Technology">'
         + '<div class="login-system">Controle de estoque</div>'
         + '<div class="login-layout"><div class="login-brand">'
         + '<div class="login-hello">Seja</div><h1 class="login-welcome">Bem-vindo!</h1>'
