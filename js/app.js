@@ -496,19 +496,19 @@ var NAV_GROUPS = [
     { path:'produtos', label:'Produtos', roles:['OPERADOR_ESTOQUE','OPERADOR_CADASTROS'] }
   ]},
   { label:'Compras', items:[
-    { path:'compras', label:'Pedidos de compra', roles:['OPERADOR_ESTOQUE','COMPRADOR'], count:function(){ return STATE.purchaseOrders.filter(function(p){return p.status==='AGUARDANDO_RECEBIMENTO' || p.status==='RECEBIMENTO_COM_DIVERGENCIA';}).length; } }
-  ]},
-  { label:'Estoque', items:[
-    { path:'recebimento', label:'Recebimento', roles:['OPERADOR_ESTOQUE'], count:function(){ return STATE.purchaseOrders.filter(function(p){return p.status==='AGUARDANDO_RECEBIMENTO';}).length; } },
-    { path:'estoque', label:'Estoque atual', roles:['OPERADOR_ESTOQUE'] },
-    { path:'consulta-estoque', label:'Consulta de estoque', roles:['OPERADOR_ESTOQUE'] },
-    { path:'movimentacoes', label:'Movimentações', roles:['OPERADOR_ESTOQUE'] },
-    { path:'expedicao', label:'Expedição (online)', roles:['VENDEDOR','OPERADOR_ESTOQUE'], count:function(){ return STATE.salesOrders.filter(function(o){return o.status==='AGUARDANDO_EXPEDICAO';}).length; } }
+    { path:'compras', label:'Pedidos de compra', roles:['OPERADOR_ESTOQUE','COMPRADOR'], count:function(){ return STATE.purchaseOrders.filter(function(p){return p.status==='AGUARDANDO_RECEBIMENTO' || p.status==='RECEBIMENTO_COM_DIVERGENCIA';}).length; } },
+    { path:'recebimento', label:'Recebimento', roles:['OPERADOR_ESTOQUE'], count:function(){ return STATE.purchaseOrders.filter(function(p){return p.status==='AGUARDANDO_RECEBIMENTO';}).length; } }
   ]},
   { label:'Vendas', items:[
     { path:'vendas', label:'Pedidos de venda', roles:['VENDEDOR'] },
     { path:'pagamento', label:'Pagamento (loja)', roles:['VENDEDOR'], count:function(){ return STATE.salesOrders.filter(function(o){return o.status==='AGUARDANDO_PAGAMENTO';}).length; } },
     { path:'clientes', label:'Clientes', roles:['VENDEDOR'] }
+  ]},
+  { label:'Estoque', items:[
+    { path:'estoque', label:'Estoque atual', roles:['OPERADOR_ESTOQUE'] },
+    { path:'consulta-estoque', label:'Consulta de estoque', roles:['OPERADOR_ESTOQUE'] },
+    { path:'movimentacoes', label:'Movimentações', roles:['OPERADOR_ESTOQUE'] },
+    { path:'expedicao', label:'Expedição (online)', roles:['VENDEDOR','OPERADOR_ESTOQUE'], count:function(){ return STATE.salesOrders.filter(function(o){return o.status==='AGUARDANDO_EXPEDICAO';}).length; } }
   ]},
   { label:'Administração', items:[
     { path:'usuarios', label:'Usuários', roles:['ADMIN'] },
@@ -566,7 +566,7 @@ function renderShell(){
   var html = '';
   html += '<div id="app">';
   html += '<aside id="sidebar">';
-  html += '<div class="brand"><img class="brand-logo" src="'+LOGO_URL+'" alt="'+esc(STATE.meta.orgName)+'"><div class="sub">Logistics &amp; Technology</div></div>';
+  html += '<div class="brand"><img class="brand-logo" src="assets/logo-menu-azul.png" alt="'+esc(STATE.meta.orgName)+' Logistics &amp; Technology"></div>';
   html += '<nav>';
   NAV_GROUPS.forEach(function(g){
     var visibleItems = g.items.filter(function(it){ return canAccessRoute(it.path); });
