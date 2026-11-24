@@ -344,6 +344,7 @@ async function autoRefresh(){
   if(document.hidden) return;
   try{
     var changed = await refreshRemote();
+    var pw0 = PWREQ.length; await refreshPwRequests(); if(PWREQ.length !== pw0) changed = true;
     if(changed){
       var ae = document.activeElement, typing = ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName);
       if(document.getElementById('active-modal') || typing){ NEEDS_RENDER = true; }
@@ -430,6 +431,134 @@ async function callManageUser(payload){
   return body;
 }
 
+/* ============ SENHA: PEDIDO AO ADMINISTRADOR, SENHA TEMPORARIA, TROCA ============
+   Fluxo: a pessoa pede na tela de login (funcao request_password_reset, sem
+   login) -> o administrador ve o pedido em "Usuarios", gera uma senha
+   temporaria (so ele ve, uma vez) -> no primeiro acesso a pessoa e obrigada a
+   criar uma senha nova. Precisa do SQL "ATUALIZACAO_senha_e_coletor" rodado no
+   Supabase do painel; sem ele, o sistema continua funcionando normalmente. */
+var PWREQ = [];          // pedidos pendentes (so o administrador carrega)
+var FORCING_PW = false;  // true enquanto a pessoa precisa criar a senha nova
+async function refreshPwRequests(){
+  if(!SESSION || !currentUser() || !canAccessRoute('usuarios')){ PWREQ = []; return; }
+  try{
+    var r = await supabaseClient.from('password_requests').select('*').eq('status','PENDENTE').order('created_at',{ascending:true});
+    if(!r.error) PWREQ = r.data || [];
+  }catch(e){ /* tabela ainda nao criada: ignora */ }
+}
+function genTempPassword(){
+  var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789', out = '';
+  var buf = new Uint32Array(10);
+  (window.crypto || window.msCrypto).getRandomValues(buf);
+  for(var i=0;i<buf.length;i++) out += chars.charAt(buf[i] % chars.length);
+  return out;
+}
+function passwordProblem(p1, p2){
+  if(!p1 || p1.length < 6) return 'A nova senha precisa ter pelo menos 6 caracteres.';
+  if(p1 !== p2) return 'A confirmação não é igual à nova senha.';
+  return '';
+}
+async function mustChangePassword(){
+  try{ var r = await supabaseClient.rpc('must_change_password'); return !r.error && r.data === true; }
+  catch(e){ return false; }
+}
+async function saveNewOwnPassword(newPass){
+  var r = await supabaseClient.auth.updateUser({ password: newPass });
+  if(r.error) throw r.error;
+  await supabaseClient.rpc('finish_password_change');
+}
+/* Tela cheia "crie sua nova senha" (primeiro acesso com senha temporaria). */
+function showForcePasswordChange(onDone){
+  FORCING_PW = true;
+  var root = document.getElementById('root');
+  var html = '<div id="login-screen" class="login-light">'
+    + '<img class="login-logo-top" src="assets/logo.jpg" alt="Darvik Logistics &amp; Technology">'
+    + '<div class="login-system">Controle de estoque</div>'
+    + '<div class="login-layout"><div class="login-brand">'
+    + '<div class="login-hello">Crie</div><h1 class="login-welcome">sua nova senha</h1>'
+    + '<p>Você entrou com uma senha temporária gerada pelo administrador. Por segurança, escolha agora uma senha só sua para continuar.</p>'
+    + '</div><div class="login-form">'
+    + '<p class="sub">Crie sua nova senha</p>'
+    + '<div class="field"><label>Nova senha</label><input type="password" id="f-np1" autocomplete="new-password" placeholder="Mínimo de 6 caracteres"></div>'
+    + '<div class="field"><label>Confirmar nova senha</label><input type="password" id="f-np2" autocomplete="new-password" placeholder="Digite de novo"></div>'
+    + '<div id="np-error" class="login-error" style="display:none"></div>'
+    + '<button class="btn btn-primary btn-login-submit" id="btn-np-save">Salvar e entrar</button>'
+    + '<button type="button" class="login-forgot" id="btn-np-cancel" style="align-self:center;margin-top:14px">Cancelar e sair</button>'
+    + '</div></div></div>';
+  root.innerHTML = html;
+  function err(m){ var e=document.getElementById('np-error'); e.textContent=m; e.style.display='block'; }
+  async function save(){
+    var p1=document.getElementById('f-np1').value, p2=document.getElementById('f-np2').value;
+    var bad = passwordProblem(p1,p2); if(bad){ err(bad); return; }
+    var btn=document.getElementById('btn-np-save'); btn.disabled=true;
+    try{ await saveNewOwnPassword(p1); FORCING_PW=false; toast('Senha alterada.','good'); onDone(); }
+    catch(e){ btn.disabled=false; err(/different|same/i.test(e.message||'') ? 'Escolha uma senha diferente da temporária.' : 'Não foi possível salvar a senha agora. Tente de novo.'); }
+  }
+  document.getElementById('btn-np-save').addEventListener('click', save);
+  document.getElementById('f-np2').addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); save(); } });
+  document.getElementById('btn-np-cancel').addEventListener('click', function(){
+    FORCING_PW=false; supabaseClient.auth.signOut().then(function(){ SESSION=null; CURRENT_AUTH=null; render(); });
+  });
+}
+/* "Trocar minha senha" (usuario logado). Confere a senha atual antes. */
+function openChangePasswordModal(){
+  var u = currentUser(); if(!u) return;
+  var html = '<div class="modal-head"><h3>Trocar minha senha</h3><button class="modal-close" onclick="closeModal()">×</button></div>';
+  html += '<div class="field"><label>Senha atual</label><input type="password" id="f-cp0" autocomplete="current-password"></div>';
+  html += '<div class="field"><label>Nova senha</label><input type="password" id="f-cp1" autocomplete="new-password" placeholder="Mínimo de 6 caracteres"></div>';
+  html += '<div class="field"><label>Confirmar nova senha</label><input type="password" id="f-cp2" autocomplete="new-password"></div>';
+  html += '<div id="cp-error" class="login-error" style="display:none"></div>';
+  html += '<div class="modal-foot"><button class="btn" onclick="closeModal()">Cancelar</button><button class="btn btn-primary" id="btn-cp-save">Salvar nova senha</button></div>';
+  openModal(html);
+  function err(m){ var e=document.getElementById('cp-error'); e.textContent=m; e.style.display='block'; }
+  document.getElementById('btn-cp-save').addEventListener('click', async function(){
+    var p0=document.getElementById('f-cp0').value, p1=document.getElementById('f-cp1').value, p2=document.getElementById('f-cp2').value;
+    document.getElementById('cp-error').style.display='none';
+    if(!p0){ err('Informe a senha atual.'); return; }
+    var bad = passwordProblem(p1,p2); if(bad){ err(bad); return; }
+    if(p1===p0){ err('A nova senha precisa ser diferente da atual.'); return; }
+    var btn=this; btn.disabled=true;
+    try{
+      var lookup = await supabaseClient.from('login_lookup').select('email').eq('login', u.username).maybeSingle();
+      if(lookup.error || !lookup.data){ throw new Error('lookup'); }
+      var chk = await supabaseClient.auth.signInWithPassword({ email: lookup.data.email, password: p0 });
+      if(chk.error){ btn.disabled=false; err('A senha atual está incorreta.'); return; }
+      await saveNewOwnPassword(p1);
+      closeModal(); toast('Senha alterada.','good');
+    }catch(e){ btn.disabled=false; err('Não foi possível trocar a senha agora. Tente de novo.'); }
+  });
+}
+/* Administrador: gera a senha temporaria de quem pediu (ou de qualquer usuario). */
+async function generateTempPasswordFor(login){
+  var u = STATE.users.find(function(x){ return x.username === login; });
+  if(!u){ toast('Usuário não encontrado.','bad'); return; }
+  if(!u.active){ toast('Esse usuário está inativo. Ative-o antes de gerar a senha.','bad'); return; }
+  var temp = genTempPassword();
+  try{
+    await callManageUser({ action:'update', legacyId:u.id, name:u.name, login:u.username, role:u.role, customPermissions:u.customPermissions, password:temp });
+  }catch(e){ toast('Não foi possível gerar a senha: '+(e.message||'erro'),'bad'); return; }
+  var warn = '';
+  var m = await supabaseClient.rpc('admin_mark_password_temporary', { p_login: login });
+  if(m.error) warn = 'A senha foi trocada, mas não foi possível marcar a troca obrigatória (confira se o SQL de atualização foi rodado).';
+  addAudit('Gerou senha temporária','usuario',u.id,u.name);
+  saveState();
+  await refreshPwRequests();
+  var html = '<div class="modal-head"><h3>Senha temporária gerada</h3><button class="modal-close" onclick="closeModal()">×</button></div>';
+  html += '<p>Passe esta senha para <b>'+esc(u.name)+'</b> (usuário <b>'+esc(u.username)+'</b>). Ela aparece só agora: se fechar esta janela, será preciso gerar outra.</p>';
+  html += '<div class="temp-pass-box"><span id="temp-pass-val">'+esc(temp)+'</span><button class="btn btn-sm" id="btn-copy-temp">Copiar</button></div>';
+  html += '<p class="small muted">No primeiro acesso, ' + esc(u.name.split(' ')[0]) + ' será obrigado(a) a criar uma senha nova.</p>';
+  if(warn) html += '<div class="login-error">'+esc(warn)+'</div>';
+  html += '<div class="modal-foot"><button class="btn btn-primary" onclick="closeModal()">Pronto</button></div>';
+  openModal(html);
+  document.getElementById('btn-copy-temp').addEventListener('click', function(){
+    var v = document.getElementById('temp-pass-val').textContent;
+    var done = function(){ toast('Senha copiada.','good'); };
+    if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(v).then(done, function(){}); }
+    else { var ta=document.createElement('textarea'); ta.value=v; document.body.appendChild(ta); ta.select(); try{document.execCommand('copy'); done();}catch(e){} ta.remove(); }
+  });
+  render();
+}
+
 /* ============ TOASTS ============ */
 function toast(msg, kind){
   var root = document.getElementById('toast-root');
@@ -511,7 +640,7 @@ var NAV_GROUPS = [
     { path:'expedicao', label:'Expedição (online)', roles:['VENDEDOR','OPERADOR_ESTOQUE'], count:function(){ return STATE.salesOrders.filter(function(o){return o.status==='AGUARDANDO_EXPEDICAO';}).length; } }
   ]},
   { label:'Administração', items:[
-    { path:'usuarios', label:'Usuários', roles:['ADMIN'] },
+    { path:'usuarios', label:'Usuários', roles:['ADMIN'], count:function(){ return PWREQ.length; } },
     { path:'historico', label:'Histórico / auditoria', roles:['ADMIN'] }
   ]}
 ];
@@ -584,7 +713,7 @@ function renderShell(){
   html += '<div class="session-box">';
   if(u){
     html += '<div class="who">'+esc(u.name)+'</div><div class="role">'+esc(roleLabel(u.role))+'</div>';
-    html += '<button id="btn-logout">Trocar usuário</button>';
+    html += '<div class="session-links"><button id="btn-change-pass">Trocar senha</button><button id="btn-logout">Trocar usuário</button></div>';
   }
   html += '</div>';
   html += '</aside>';
@@ -596,6 +725,8 @@ function renderShell(){
   html += '</div>';
   html += '<div id="toast-root"></div>';
   root.innerHTML = html;
+  var cpb = document.getElementById('btn-change-pass');
+  if(cpb) cpb.addEventListener('click', openChangePasswordModal);
   var lo = document.getElementById('btn-logout');
   if(lo) lo.addEventListener('click', function(){ supabaseClient.auth.signOut().then(function(){ SESSION=null; CURRENT_AUTH=null; render(); }); });
   function setSidebarOpen(open){
@@ -678,6 +809,11 @@ function renderLogin(){
       var me = STATE.users.find(function(u){ return u.username === uname; });
       if(!me || !me.active){ showLoginError('Usuário desativado. Fale com o administrador.'); await supabaseClient.auth.signOut(); btn.disabled=false; return; }
       SESSION = { userId: me.id };
+      if(await mustChangePassword()){
+        showForcePasswordChange(async function(){ await refreshPwRequests(); render(); });
+        return;
+      }
+      await refreshPwRequests();
       render();
     }catch(e){
       console.error(e);
@@ -685,9 +821,35 @@ function renderLogin(){
       btn.disabled=false;
     }
   }
-  // "Esqueceu a senha?": a recuperação automática ainda será construída;
-  // por enquanto orienta a falar com o administrador.
-  document.getElementById('btn-forgot').addEventListener('click', function(){ showLoginError('Para redefinir sua senha, fale com o administrador do sistema.'); });
+  // "Esqueceu a senha?": a pessoa pede ao administrador, que gera uma senha
+  // temporaria. A resposta e sempre a mesma (nao revela se o usuario existe).
+  document.getElementById('btn-forgot').addEventListener('click', function(){
+    var typed = document.getElementById('f-login-user').value.trim();
+    var form = document.querySelector('.login-form');
+    form.innerHTML = '<p class="sub">Esqueceu a senha?</p>'
+      + '<p class="small" style="margin:-8px 0 14px;line-height:1.5;color:#51607a">Digite seu usuário. O pedido vai para o administrador, que vai gerar uma senha temporária para você.</p>'
+      + '<div class="field"><label>Usuário</label><div class="input-icon">'+ICON_USER+'<input type="text" id="f-reset-user" placeholder="Digite seu usuário de acesso" autocomplete="username" autocapitalize="off" autocorrect="off"></div></div>'
+      + '<div id="reset-msg" class="login-error" style="display:none;margin-top:4px"></div>'
+      + '<button class="btn btn-primary btn-login-submit" id="btn-send-reset">Enviar pedido</button>'
+      + '<button type="button" class="login-forgot" id="btn-back-login" style="align-self:center;margin-top:14px">Voltar ao login</button>';
+    var inp = document.getElementById('f-reset-user'); inp.value = typed; inp.focus();
+    function msg(t, ok){ var m=document.getElementById('reset-msg'); m.textContent=t; m.style.display='block'; m.classList.toggle('login-ok', !!ok); }
+    async function send(){
+      var u = inp.value.trim().toLowerCase();
+      if(!u){ msg('Digite o seu usuário.', false); return; }
+      var b = document.getElementById('btn-send-reset'); b.disabled = true;
+      try{
+        var r = await supabaseClient.rpc('request_password_reset', { p_login: u });
+        if(r.error) throw r.error;
+        msg('Pedido enviado! Avise o administrador do sistema para ele gerar a sua senha temporária.', true);
+      }catch(e){
+        b.disabled = false; msg('Não foi possível enviar o pedido agora. Fale com o administrador do sistema.', false);
+      }
+    }
+    document.getElementById('btn-send-reset').addEventListener('click', send);
+    inp.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); send(); } });
+    document.getElementById('btn-back-login').addEventListener('click', renderLogin);
+  });
   document.getElementById('btn-login').addEventListener('click', doLogin);
   document.getElementById('f-login-user').addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); document.getElementById('f-login-pass').focus(); } });
   document.getElementById('f-login-pass').addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); doLogin(); } });
@@ -707,6 +869,7 @@ var PAGE_TITLES = {
 };
 
 function render(){
+  if(FORCING_PW) return;
   if(!SESSION || !currentUser()){ renderLogin(); return; }
   var path = currentPath();
   var seg = path.split('/').filter(Boolean);
@@ -2636,11 +2799,22 @@ function permChecklistHtml(role, checkedList){
   });
   return html;
 }
+function userHasColetor(u){ return u.role==='ADMIN' || !!(u.customPermissions && u.customPermissions.indexOf('coletor')>=0); }
 ROUTES.usuarios = function(){
-  var html = '<div class="toolbar"><div></div><button class="btn btn-primary" id="btn-add-user">+ Novo usuário</button></div>';
-  html += '<div class="table-wrap"><table><thead><tr><th>Nome</th><th>Usuário</th><th>Função</th><th>Status</th><th></th></tr></thead><tbody>';
+  var html = '';
+  if(PWREQ.length){
+    html += '<div class="pw-requests"><h4>Pedidos de redefinição de senha <span class="nav-count">'+PWREQ.length+'</span></h4>';
+    PWREQ.forEach(function(r){
+      var u = STATE.users.find(function(x){ return x.username === r.login; });
+      html += '<div class="pw-req-row"><div><b>'+esc(u?u.name:r.login)+'</b> <span class="muted small">(usuário '+esc(r.login)+') · pediu em '+fmtDate(new Date(r.created_at).getTime())+'</span></div>';
+      html += '<div><button class="btn btn-sm btn-primary" data-gen-pass="'+esc(r.login)+'">Gerar senha temporária</button> <button class="btn btn-sm" data-dismiss-pass="'+esc(r.id)+'">Dispensar</button></div></div>';
+    });
+    html += '</div>';
+  }
+  html += '<div class="toolbar"><div></div><button class="btn btn-primary" id="btn-add-user">+ Novo usuário</button></div>';
+  html += '<div class="table-wrap"><table><thead><tr><th>Nome</th><th>Usuário</th><th>Função</th><th>Coletor</th><th>Status</th><th></th></tr></thead><tbody>';
   STATE.users.forEach(function(u){
-    html += '<tr><td>'+esc(u.name)+'</td><td class="code-cell">'+esc(u.username||'—')+'</td><td>'+esc(roleLabel(u.role))+'</td><td>'+(u.active?'<span class="badge badge-good">Ativo</span>':'<span class="badge badge-info">Inativo</span>')+'</td>';
+    html += '<tr><td>'+esc(u.name)+'</td><td class="code-cell">'+esc(u.username||'—')+'</td><td>'+esc(roleLabel(u.role))+'</td><td>'+(userHasColetor(u)?'<span class="badge badge-good">Sim</span>':'<span class="badge badge-info">Não</span>')+'</td><td>'+(u.active?'<span class="badge badge-good">Ativo</span>':'<span class="badge badge-info">Inativo</span>')+'</td>';
     html += '<td class="right"><button class="btn btn-sm" data-edit-user="'+u.id+'">Editar</button> <button class="btn btn-sm" data-toggle-user="'+u.id+'">'+(u.active?'Desativar':'Ativar')+'</button></td></tr>';
   });
   html += '</tbody></table></div>';
@@ -2648,6 +2822,16 @@ ROUTES.usuarios = function(){
   return html;
 };
 ROUTES.usuarios__after = function(){
+  document.querySelectorAll('[data-gen-pass]').forEach(function(b){ b.addEventListener('click', function(){
+    b.disabled = true; generateTempPasswordFor(b.getAttribute('data-gen-pass')).then(function(){ b.disabled = false; });
+  }); });
+  document.querySelectorAll('[data-dismiss-pass]').forEach(function(b){ b.addEventListener('click', async function(){
+    b.disabled = true;
+    var r = await supabaseClient.from('password_requests').update({ status:'CANCELADA' }).eq('id', b.getAttribute('data-dismiss-pass'));
+    if(r.error){ toast('Não foi possível dispensar o pedido.','bad'); b.disabled=false; return; }
+    await refreshPwRequests(); render();
+  }); });
+  refreshPwRequests().then(function(){ var n = PWREQ.length, el = document.querySelector('.pw-requests'); if((n>0) !== !!el && currentPath()==='/usuarios') render(); });
   document.getElementById('btn-add-user').addEventListener('click', function(){ openUserForm(null); });
   document.querySelectorAll('[data-edit-user]').forEach(function(b){ b.addEventListener('click', function(){ openUserForm(findUser(b.getAttribute('data-edit-user'))); }); });
   document.querySelectorAll('[data-toggle-user]').forEach(function(b){ b.addEventListener('click', function(){
@@ -2666,6 +2850,8 @@ function openUserForm(user){
   html += '<div class="field" id="perm-field"><label>Permissões de telas (acesso personalizado)</label>';
   html += '<p class="small muted" style="margin-top:-2px">A função acima já marca as telas padrão dela — marque ou desmarque qualquer tela para personalizar o acesso só deste operador. Telas com <span class="badge badge-warn">acesso administrativo</span> permitem gerenciar outros usuários mesmo sem a função Administrador.</p>';
   html += '<div id="perm-checklist">'+permChecklistHtml(initialRole, user && user.customPermissions ? user.customPermissions : null)+'</div></div>';
+  html += '<div class="field" id="coletor-field"><label style="display:flex;align-items:center;gap:8px;font-weight:600;margin-bottom:2px;"><input type="checkbox" id="f-user-coletor"'+(user && user.customPermissions && user.customPermissions.indexOf('coletor')>=0 ? ' checked':'')+'> Pode usar o Coletor (celular)</label>';
+  html += '<p class="small muted" style="margin-top:2px">Libera o login deste usuário no sistema do coletor (armazenagem, separação e conferência). O Administrador sempre tem acesso.</p></div>';
   html += '<div class="field"><label>Senha'+(user?' (deixe em branco para manter a atual)':'')+'</label><input type="password" id="f-user-pass" autocomplete="new-password"></div>';
   html += '<div class="field"><label>Confirmar senha</label><input type="password" id="f-user-pass2" autocomplete="new-password"></div>';
   html += '<div id="user-form-error" class="login-error" style="display:none"></div>';
@@ -2675,6 +2861,8 @@ function openUserForm(user){
     var role = document.getElementById('f-user-role').value;
     var field = document.getElementById('perm-field');
     field.style.display = (role==='ADMIN') ? 'none' : '';
+    var cf = document.getElementById('coletor-field');
+    if(cf) cf.style.display = (role==='ADMIN') ? 'none' : '';
   }
   updatePermVisibility();
   document.getElementById('f-user-role').addEventListener('change', function(){
@@ -2699,6 +2887,7 @@ function openUserForm(user){
     if(role !== 'ADMIN'){
       customPermissions = [];
       document.querySelectorAll('#perm-checklist .perm-check').forEach(function(cb){ if(cb.checked) customPermissions.push(cb.value); });
+      if(document.getElementById('f-user-coletor').checked) customPermissions.push('coletor');
     }
     var btn = document.getElementById('save-user');
     btn.disabled = true;
@@ -2745,6 +2934,11 @@ async function boot(){
       var loginFromEmail = email ? email.split('@')[0] : null;
       var me = STATE.users.find(function(u){ return u.username === loginFromEmail; });
       if(me && me.active){ SESSION = { userId: me.id }; }
+      if(SESSION && await mustChangePassword()){
+        showForcePasswordChange(async function(){ await refreshPwRequests(); render(); });
+        return;
+      }
+      await refreshPwRequests();
     }
   }catch(e){ console.error('Falha ao restaurar sessão:', e); }
   render();
