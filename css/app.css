@@ -358,3 +358,14 @@ tr:last-child td{border-bottom:none;}
 .center{text-align:center;}
 .mt8{margin-top:8px;}.mt14{margin-top:14px;}.mb0{margin-bottom:0;}
 .flex{display:flex;}.gap8{gap:8px;}.items-center{align-items:center;}
+
+/* ===== senha: pedido ao administrador, temporaria, troca ===== */
+.login-error.login-ok{background:#e4f7ee; color:#13724a;}
+.session-links{display:flex; gap:14px; flex-wrap:wrap; margin-top:6px;}
+.session-links button{margin-top:0;}
+.pw-requests{background:#fff8e6; border:1px solid #f0d48a; border-radius:12px; padding:14px 16px; margin-bottom:16px;}
+.pw-requests h4{margin:0 0 10px; font-size:14px; color:#7a5a05; display:flex; align-items:center; gap:8px;}
+.pw-req-row{display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; padding:8px 0; border-top:1px dashed #ecd9a3;}
+.pw-req-row:first-of-type{border-top:none;}
+.temp-pass-box{display:flex; align-items:center; justify-content:space-between; gap:12px; background:#eef4fd; border:1.5px dashed #9fbbea; border-radius:12px; padding:14px 16px; margin:12px 0;}
+.temp-pass-box span{font-family:'IBM Plex Mono',ui-monospace,monospace; font-size:22px; letter-spacing:.08em; font-weight:700; color:#0b2a6b; user-select:all;}
