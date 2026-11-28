@@ -344,7 +344,7 @@ async function autoRefresh(){
   if(document.hidden) return;
   try{
     var changed = await refreshRemote();
-    var pw0 = PWREQ.length; await refreshPwRequests(); if(PWREQ.length !== pw0) changed = true;
+    var pw0 = PWREQ.length, oc0 = OCC_SIG; await refreshPwRequests(); if(PWREQ.length !== pw0 || OCC_SIG !== oc0) changed = true;
     if(changed){
       var ae = document.activeElement, typing = ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName);
       if(document.getElementById('active-modal') || typing){ NEEDS_RENDER = true; }
@@ -439,7 +439,8 @@ async function callManageUser(payload){
    Supabase do painel; sem ele, o sistema continua funcionando normalmente. */
 var PWREQ = [];          // pedidos pendentes (so o administrador carrega)
 var FORCING_PW = false;  // true enquanto a pessoa precisa criar a senha nova
-async function refreshPwRequests(){
+async function refreshPwRequests(){ await refreshPwOnly(); await refreshOccurrences(); }
+async function refreshPwOnly(){
   if(!SESSION || !currentUser() || !canAccessRoute('usuarios')){ PWREQ = []; return; }
   try{
     var r = await supabaseClient.from('password_requests').select('*').eq('status','PENDENTE').order('created_at',{ascending:true});
@@ -638,6 +639,7 @@ var NAV_GROUPS = [
     { path:'estoque', label:'Estoque atual', roles:['OPERADOR_ESTOQUE'] },
     { path:'consulta-estoque', label:'Consulta de estoque', roles:['OPERADOR_ESTOQUE'] },
     { path:'movimentacoes', label:'Movimentações', roles:['OPERADOR_ESTOQUE'] },
+    { path:'ocorrencias', label:'Ocorrências', roles:['OPERADOR_ESTOQUE','VENDEDOR','COMPRADOR'], count:function(){ return occOpenCount(); } },
     { path:'expedicao', label:'Expedição (online)', roles:['VENDEDOR','OPERADOR_ESTOQUE'], count:function(){ return STATE.salesOrders.filter(function(o){return o.status==='AGUARDANDO_EXPEDICAO';}).length; } }
   ]},
   { label:'Administração', items:[
@@ -667,6 +669,7 @@ var NAV_ICONS = {
   historico: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>',
   'estoque-gestao': '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3.5 8 12 3.5 20.5 8 12 12.5 3.5 8z"/><path d="M3.5 8v8L12 20.5 20.5 16V8"/><path d="M8 5.8 16.5 10.5"/></svg>',
   'vendas-faturamento': '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 20V9m6 11V4m6 16v-7m6 7V11"/></svg>',
+  ocorrencias: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3.5 2.8 19.5h18.4z"/><path d="M12 10v4.5M12 17.2v.1"/></svg>',
   'filas-pendentes': '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12h4"/></svg>',
   'dash-produtos': '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3.5 7.5 12 3l8.5 4.5V16.5L12 21l-8.5-4.5z"/><path d="M3.5 7.5 12 12l8.5-4.5M12 12v9"/></svg>',
   'dash-produto': '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3.5 7.5 12 3l8.5 4.5V16.5L12 21l-8.5-4.5z"/><path d="M3.5 7.5 12 12l8.5-4.5M12 12v9"/></svg>',
@@ -864,7 +867,7 @@ var PAGE_TITLES = {
   'consulta-estoque':'Consulta de estoque',
   vendas:'Pedidos de venda',
   pagamento:'Pagamento (loja física)', expedicao:'Expedição (vendas online)', usuarios:'Usuários', historico:'Histórico / auditoria',
-  'estoque-gestao':'Estoque (gestão)', 'vendas-faturamento':'Vendas e faturamento', 'filas-pendentes':'Filas pendentes',
+  'estoque-gestao':'Estoque (gestão)', 'vendas-faturamento':'Vendas e faturamento', 'filas-pendentes':'Filas pendentes', ocorrencias:'Ocorrências',
   'dash-produtos':'Produtos cadastrados', 'dash-produto':'Ficha do produto', 'dash-localizacoes':'Localizações',
   'dash-sem-estoque':'Produtos sem estoque', 'dash-vendas-ativas':'Pedidos de venda ativos'
 };
@@ -1658,6 +1661,127 @@ ROUTES['filas-pendentes__after'] = function(){
     b.addEventListener('click', function(){ var fn = handlers[b.getAttribute('data-fila')]; if(fn) fn(); });
   });
 };
+
+
+/* ============ OCORRÊNCIAS ============
+   Criadas no coletor pelo botão "Negar" (Falta, Sobra ou Outros). Ficam na
+   tabela "occurrences" do Supabase do painel (SQL "6_SQL_ocorrencias").
+   Armazenagem -> Compras; Separação/Conferência -> quem criou o pedido de
+   venda. O estoque também pode resolver. Fluxo: Aberta -> Em análise ->
+   Encaminhada -> Resolvida. */
+var OCC = [], OCC_SIG = '', OCC_TAB = 'TODAS', OCC_SHOW = 'ABERTAS';
+var OCC_STAGE = { ARMAZENAGEM:'Armazenagem', SEPARACAO:'Separação', CONFERENCIA:'Conferência' };
+var OCC_KIND = { FALTA:'Falta', SOBRA:'Sobra', OUTROS:'Outros' };
+var OCC_STATUS = { ABERTA:['warn','Aberta'], EM_ANALISE:['info','Em análise'], ENCAMINHADA:['accent','Encaminhada'], RESOLVIDA:['good','Resolvida'] };
+var OCC_RES = {
+  compras: ['Aguardando reenvio do fornecedor','Devolução total','Sobra aceita','Pedido ajustado'],
+  vendas: ['Aguardar reposição','Enviar parcial','Trocar produto','Cancelar item'],
+  estoque: ['Resolvido no estoque (ajuste)']
+};
+async function refreshOccurrences(){
+  if(!SESSION || !currentUser() || !canAccessRoute('ocorrencias')){ OCC = []; OCC_SIG = ''; return; }
+  try{
+    var r = await supabaseClient.from('occurrences').select('*').order('created_at',{ascending:false}).limit(300);
+    if(!r.error){ OCC = r.data || []; OCC_SIG = OCC.map(function(o){ return o.id+o.status+((o.history||[]).length); }).join('|'); }
+  }catch(e){ /* tabela ainda nao criada: ignora */ }
+}
+function occOpenCount(){ return OCC.filter(function(o){ return o.status !== 'RESOLVIDA'; }).length; }
+function occDest(o){ return o.stage==='ARMAZENAGEM' ? 'Compras' : ('Vendas'+(o.assigned_name?' · '+o.assigned_name:'')); }
+function occBadge(st){ var m = OCC_STATUS[st] || ['info', st]; return '<span class="badge badge-'+m[0]+'">'+esc(m[1])+'</span>'; }
+function occQty(o){
+  if(o.kind==='OUTROS') return '—';
+  return esc(String(o.expected_qty))+' esperado · '+esc(String(o.actual_qty))+' real';
+}
+ROUTES.ocorrencias = function(){
+  var list = OCC.filter(function(o){
+    if(OCC_TAB !== 'TODAS' && o.stage !== OCC_TAB) return false;
+    return OCC_SHOW === 'ABERTAS' ? o.status !== 'RESOLVIDA' : o.status === 'RESOLVIDA';
+  });
+  var html = '<div class="toolbar"><div class="toolbar-left">';
+  [['TODAS','Todas'],['ARMAZENAGEM','Armazenagem'],['SEPARACAO','Separação'],['CONFERENCIA','Conferência']].forEach(function(t){
+    html += '<button class="btn btn-sm'+(OCC_TAB===t[0]?' btn-primary':'')+'" data-occ-tab="'+t[0]+'">'+t[1]+'</button> ';
+  });
+  html += '</div><div>';
+  [['ABERTAS','Em aberto'],['RESOLVIDAS','Resolvidas']].forEach(function(t){
+    html += '<button class="btn btn-sm'+(OCC_SHOW===t[0]?' btn-primary':'')+'" data-occ-show="'+t[0]+'">'+t[1]+'</button> ';
+  });
+  html += '</div></div>';
+  if(!list.length){
+    html += emptyState(OCC_SHOW==='ABERTAS' ? 'Nenhuma ocorrência em aberto.' : 'Nenhuma ocorrência resolvida.');
+    return html;
+  }
+  html += '<div class="table-wrap"><table><thead><tr><th>Código</th><th>Etapa</th><th>Produto</th><th>Motivo</th><th>Quantidades</th><th>Referência</th><th>Responsável</th><th>Status</th><th></th></tr></thead><tbody>';
+  list.forEach(function(o){
+    var age = (Date.now() - new Date(o.created_at).getTime()) / 86400000;
+    var old = o.status !== 'RESOLVIDA' && age >= 2;
+    html += '<tr><td class="code-cell" style="white-space:nowrap">'+esc(o.code)+'</td><td>'+esc(OCC_STAGE[o.stage]||o.stage)+'</td><td>'+esc(o.product_label||'—')+'</td>';
+    html += '<td>'+esc(OCC_KIND[o.kind]||o.kind)+'</td><td>'+occQty(o)+'</td><td class="code-cell">'+esc(o.ref_code||o.ref_id||'—')+'</td>';
+    html += '<td>'+esc(occDest(o))+'</td><td>'+occBadge(o.status)+(old?' <span class="badge badge-bad" title="Aberta há mais de 2 dias">Antiga</span>':'')+'</td>';
+    html += '<td class="right"><button class="btn btn-sm" data-occ-open="'+esc(o.id)+'">Abrir</button></td></tr>';
+  });
+  html += '</tbody></table></div>';
+  return html;
+};
+ROUTES.ocorrencias__after = function(){
+  document.querySelectorAll('[data-occ-tab]').forEach(function(b){ b.addEventListener('click', function(){ OCC_TAB = b.getAttribute('data-occ-tab'); render(); }); });
+  document.querySelectorAll('[data-occ-show]').forEach(function(b){ b.addEventListener('click', function(){ OCC_SHOW = b.getAttribute('data-occ-show'); render(); }); });
+  document.querySelectorAll('[data-occ-open]').forEach(function(b){ b.addEventListener('click', function(){
+    var o = OCC.find(function(x){ return x.id === b.getAttribute('data-occ-open'); }); if(o) openOccurrenceModal(o);
+  }); });
+  refreshOccurrences().then(function(){ if(currentPath()==='/ocorrencias' && !document.getElementById('active-modal')){ /* tabela pode ter chegado agora */ } });
+};
+function openOccurrenceModal(o){
+  var open = o.status !== 'RESOLVIDA';
+  var html = '<div class="modal-head"><h3>Ocorrência '+esc(o.code)+'</h3><button class="modal-close" onclick="closeModal()">×</button></div>';
+  html += '<p>'+occBadge(o.status)+' <span class="muted small">'+esc(OCC_STAGE[o.stage]||o.stage)+' · '+esc(OCC_KIND[o.kind]||o.kind)+' · aberta em '+fmtDate(new Date(o.created_at).getTime())+' por '+esc(o.created_by_name||'—')+'</span></p>';
+  html += '<div class="table-wrap"><table><tbody>';
+  html += '<tr><th>Produto</th><td>'+esc(o.product_label||'—')+'</td></tr>';
+  html += '<tr><th>Referência</th><td>'+esc((o.ref_type==='compra'?'Pedido de compra ':'Pedido de venda ')+(o.ref_code||o.ref_id||'—'))+'</td></tr>';
+  html += '<tr><th>Local</th><td>'+esc(o.location_code||'—')+'</td></tr>';
+  html += '<tr><th>Quantidades</th><td>'+occQty(o)+'</td></tr>';
+  html += '<tr><th>Responsável</th><td>'+esc(occDest(o))+'</td></tr>';
+  html += '<tr><th>Justificativa</th><td>'+esc(o.justification||'—')+'</td></tr>';
+  if(o.resolution) html += '<tr><th>Resolução</th><td>'+esc(o.resolution)+' <span class="muted small">('+esc(o.resolved_by||'')+')</span></td></tr>';
+  html += '</tbody></table></div>';
+  html += '<h4 class="mt14">Histórico</h4><ul class="small">';
+  (o.history||[]).forEach(function(h){
+    html += '<li>'+fmtDate(new Date(h.at).getTime())+' · <b>'+esc(h.by||'')+'</b> · '+esc(h.action||'')+(h.resolution?' ('+esc(h.resolution)+')':'')+(h.note?' — '+esc(h.note):'')+'</li>';
+  });
+  html += '</ul>';
+  if(open){
+    var opts = [];
+    var u = currentUser();
+    var adm = u && u.role === 'ADMIN';
+    if(adm || canAccessRoute(o.stage==='ARMAZENAGEM' ? 'compras' : 'vendas')) opts = opts.concat(o.stage==='ARMAZENAGEM' ? OCC_RES.compras : OCC_RES.vendas);
+    if(adm || canAccessRoute('estoque')) opts = opts.concat(OCC_RES.estoque);
+    if(o.stage==='ARMAZENAGEM' && o.kind!=='SOBRA') opts = opts.filter(function(x){ return x !== 'Sobra aceita'; });
+    html += '<div class="field mt14"><label>Observação</label><textarea id="f-occ-note" rows="2" placeholder="Escreva o que foi feito ou combinado"></textarea></div>';
+    html += '<div class="field"><label>Como foi resolvida (para Resolver)</label><select id="f-occ-res"><option value="">Escolha…</option>'+opts.map(function(x){ return '<option>'+esc(x)+'</option>'; }).join('')+'</select></div>';
+    html += '<div id="occ-err" class="login-error" style="display:none"></div>';
+    html += '<div class="modal-foot"><button class="btn" onclick="closeModal()">Fechar</button>';
+    if(o.status==='ABERTA') html += '<button class="btn" id="occ-analise">Em análise</button>';
+    html += '<button class="btn" id="occ-encam">Encaminhar</button><button class="btn btn-primary" id="occ-resolver">Resolver</button></div>';
+  } else {
+    html += '<div class="modal-foot"><button class="btn btn-primary" onclick="closeModal()">Fechar</button></div>';
+  }
+  openModal(html);
+  if(!open) return;
+  function err(m){ var e=document.getElementById('occ-err'); e.textContent=m; e.style.display='block'; }
+  async function go(status){
+    var note = document.getElementById('f-occ-note').value.trim(), res = document.getElementById('f-occ-res').value;
+    document.getElementById('occ-err').style.display = 'none';
+    if(status==='ENCAMINHADA' && note.length < 2){ err('Escreva a observação do encaminhamento.'); return; }
+    if(status==='RESOLVIDA' && !res){ err('Escolha como a ocorrência foi resolvida.'); return; }
+    var r = await supabaseClient.rpc('update_occurrence', { p_id:o.id, p_status:status, p_note:note||null, p_resolution: status==='RESOLVIDA' ? res : null });
+    if(r.error){ err('Não foi possível salvar.'+errDetail(r.error)); return; }
+    addAudit('Ocorrência '+o.code+': '+(OCC_STATUS[status]||[0,status])[1],'ocorrencia',o.id,o.product_label||'');
+    saveState();
+    await refreshOccurrences(); closeModal(); toast('Ocorrência atualizada.','good'); render();
+  }
+  var a = document.getElementById('occ-analise'); if(a) a.addEventListener('click', function(){ go('EM_ANALISE'); });
+  document.getElementById('occ-encam').addEventListener('click', function(){ go('ENCAMINHADA'); });
+  document.getElementById('occ-resolver').addEventListener('click', function(){ go('RESOLVIDA'); });
+}
 
 /* ============ CATEGORIAS ============ */
 ROUTES.categorias = function(){
