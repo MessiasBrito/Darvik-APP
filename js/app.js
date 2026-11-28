@@ -453,6 +453,7 @@ function genTempPassword(){
   for(var i=0;i<buf.length;i++) out += chars.charAt(buf[i] % chars.length);
   return out;
 }
+function errDetail(e){ var t=String((e&&(e.message||e.error_description||e.code))||e||'').replace(/\s+/g,' ').slice(0,140); return t ? ' (Detalhe técnico: '+t+')' : ''; }
 function passwordProblem(p1, p2){
   if(!p1 || p1.length < 6) return 'A nova senha precisa ter pelo menos 6 caracteres.';
   if(p1 !== p2) return 'A confirmação não é igual à nova senha.';
@@ -492,7 +493,7 @@ function showForcePasswordChange(onDone){
     var bad = passwordProblem(p1,p2); if(bad){ err(bad); return; }
     var btn=document.getElementById('btn-np-save'); btn.disabled=true;
     try{ await saveNewOwnPassword(p1); FORCING_PW=false; toast('Senha alterada.','good'); onDone(); }
-    catch(e){ btn.disabled=false; err(/different|same/i.test(e.message||'') ? 'Escolha uma senha diferente da temporária.' : 'Não foi possível salvar a senha agora. Tente de novo.'); }
+    catch(e){ btn.disabled=false; err(/different|same/i.test(e.message||'') ? 'Escolha uma senha diferente da temporária.' : 'Não foi possível salvar a senha agora. Tente de novo.'+errDetail(e)); }
   }
   document.getElementById('btn-np-save').addEventListener('click', save);
   document.getElementById('f-np2').addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); save(); } });
@@ -525,7 +526,7 @@ function openChangePasswordModal(){
       if(chk.error){ btn.disabled=false; err('A senha atual está incorreta.'); return; }
       await saveNewOwnPassword(p1);
       closeModal(); toast('Senha alterada.','good');
-    }catch(e){ btn.disabled=false; err('Não foi possível trocar a senha agora. Tente de novo.'); }
+    }catch(e){ btn.disabled=false; err('Não foi possível trocar a senha agora. Tente de novo.'+errDetail(e)); }
   });
 }
 /* Administrador: gera a senha temporaria de quem pediu (ou de qualquer usuario). */
@@ -843,7 +844,7 @@ function renderLogin(){
         if(r.error) throw r.error;
         msg('Pedido enviado! Avise o administrador do sistema para ele gerar a sua senha temporária.', true);
       }catch(e){
-        b.disabled = false; msg('Não foi possível enviar o pedido agora. Fale com o administrador do sistema.', false);
+        b.disabled = false; msg('Não foi possível enviar o pedido agora. Fale com o administrador do sistema.'+errDetail(e), false);
       }
     }
     document.getElementById('btn-send-reset').addEventListener('click', send);
